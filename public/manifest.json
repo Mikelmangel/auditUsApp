@@ -1,0 +1,10 @@
+{
+  "name": "AuditUs",
+  "short_name": "AuditUs",
+  "description": "Encuestas sociales para grupos de amigos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait"
+}

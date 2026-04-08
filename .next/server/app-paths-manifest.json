@@ -1,0 +1,13 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
+  "/auth/page": "app/auth/page.js",
+  "/explore/page": "app/explore/page.js",
+  "/groups/[id]/page": "app/groups/[id]/page.js",
+  "/groups/new/page": "app/groups/new/page.js",
+  "/leaderboard/page": "app/leaderboard/page.js",
+  "/page": "app/page.js",
+  "/poll/[id]/page": "app/poll/[id]/page.js",
+  "/profile/page": "app/profile/page.js"
+}

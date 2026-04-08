@@ -1,0 +1,13 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/auth/callback/route": "/auth/callback",
+  "/auth/page": "/auth",
+  "/explore/page": "/explore",
+  "/groups/[id]/page": "/groups/[id]",
+  "/groups/new/page": "/groups/new",
+  "/leaderboard/page": "/leaderboard",
+  "/page": "/",
+  "/poll/[id]/page": "/poll/[id]",
+  "/profile/page": "/profile"
+}
