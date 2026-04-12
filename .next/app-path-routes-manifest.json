@@ -1,6 +1,9 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/cron/questions/route": "/api/cron/questions",
+  "/api/cron/summary/route": "/api/cron/summary",
+  "/api/groups/[id]/audit/route": "/api/groups/[id]/audit",
   "/auth/callback/route": "/auth/callback",
   "/auth/page": "/auth",
   "/explore/page": "/explore",

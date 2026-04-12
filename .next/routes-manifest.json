@@ -23,6 +23,14 @@
   },
   "dynamicRoutes": [
     {
+      "page": "/api/groups/[id]/audit",
+      "regex": "^/api/groups/([^/]+?)/audit(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/groups/(?<nxtPid>[^/]+?)/audit(?:/)?$"
+    },
+    {
       "page": "/groups/[id]",
       "regex": "^/groups/([^/]+?)(?:/)?$",
       "routeKeys": {
@@ -57,6 +65,18 @@
       "regex": "^/_not\\-found(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/api/cron/questions",
+      "regex": "^/api/cron/questions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/questions(?:/)?$"
+    },
+    {
+      "page": "/api/cron/summary",
+      "regex": "^/api/cron/summary(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/cron/summary(?:/)?$"
     },
     {
       "page": "/auth",

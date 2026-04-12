@@ -38,7 +38,8 @@ export type Group = {
 export type GroupMember = {
   profile_id: string;
   group_id: string;
-  role: 'admin' | 'member';
+  role: 'creator' | 'admin' | 'member';
+  status: 'active' | 'banned';
   joined_at: string;
   profiles: Profile;
 };
@@ -48,11 +49,13 @@ export type Poll = {
   group_id: string;
   question: string;
   rendered_question?: string;
-  poll_type: 'pool' | 'vs' | 'boolean' | 'ranked';
+  poll_type: 'pool' | 'vs' | 'boolean' | 'ranked' | 'prediction' | 'battle_royale';
   is_active: boolean;
   expires_at?: string;
   created_at: string;
   groups?: { id: string; name: string };
+  resolution_status?: 'open' | 'resolved';
+  resolved_target_id?: string;
 };
 
 export type Question = {
@@ -61,6 +64,17 @@ export type Question = {
   poll_type: 'pool' | 'vs' | 'boolean' | 'ranked';
   category: string;
   min_members: number;
+};
+
+export type Nudge = {
+  id: string;
+  poll_id: string;
+  sender_id: string;
+  receiver_id: string;
+  is_read: boolean;
+  created_at: string;
+  polls?: { question: string, rendered_question?: string, groups?: { name: string } };
+  sender?: { username: string };
 };
 
 export type Comment = {
@@ -146,10 +160,10 @@ export const groupService = {
       .single();
     if (error) throw error;
 
-    // Auto-join the creator as admin
+    // Auto-join the creator as creator
     const { error: joinError } = await supabase
       .from('group_members')
-      .insert([{ group_id: data.id, profile_id: userId, role: 'admin' }]);
+      .insert([{ group_id: data.id, profile_id: userId, role: 'creator', status: 'active' }]);
     if (joinError) throw joinError;
 
     return data as Group;
@@ -163,18 +177,22 @@ export const groupService = {
       .single();
     if (groupError || !group) throw new Error('Código de grupo no válido');
 
-    // Check if already a member
+    // Check if already a member or banned
     const { data: existing } = await supabase
       .from('group_members')
-      .select('profile_id')
+      .select('profile_id, status')
       .eq('group_id', group.id)
       .eq('profile_id', userId)
-      .single();
-    if (existing) throw new Error('Ya eres miembro de este grupo');
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.status === 'banned') throw new Error('Has sido expulsado de este grupo y no puedes volver a entrar');
+      throw new Error('Ya eres miembro de este grupo');
+    }
 
     const { error: joinError } = await supabase
       .from('group_members')
-      .insert([{ group_id: group.id, profile_id: userId, role: 'member' }]);
+      .insert([{ group_id: group.id, profile_id: userId, role: 'member', status: 'active' }]);
     if (joinError) throw joinError;
 
     return group as Pick<Group, 'id' | 'name'>;
@@ -202,11 +220,21 @@ export const groupService = {
   async getGroupMembers(groupId: string): Promise<GroupMember[]> {
     const { data, error } = await supabase
       .from('group_members')
-      .select('profile_id, group_id, role, joined_at, profiles(id, username, avatar_url, points, current_streak)')
+      .select('profile_id, group_id, role, status, joined_at, profiles(id, username, avatar_url, points, current_streak)')
       .eq('group_id', groupId)
+      .eq('status', 'active')
       .order('joined_at', { ascending: true });
     if (error) return [];
     return data as unknown as GroupMember[];
+  },
+
+  async kickMember(groupId: string, userId: string) {
+    const { error } = await supabase
+      .from('group_members')
+      .update({ status: 'banned' })
+      .eq('group_id', groupId)
+      .eq('profile_id', userId);
+    if (error) throw error;
   },
 
   async leaveGroup(groupId: string, userId: string) {
@@ -228,6 +256,14 @@ export const groupService = {
     if (error) return [];
     return data;
   },
+
+  async getAllGroups(): Promise<Group[]> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*');
+    if (error) return [];
+    return data;
+  },
 };
 
 // ─────────────────────────────────────────────
@@ -236,6 +272,12 @@ export const groupService = {
 
 export const pollService = {
   async createPoll(groupId: string, question: string, userId: string, pollType: Poll['poll_type'] = 'pool') {
+    // Check limit
+    const todayCount = await pollService.getTodaysPollCount(groupId);
+    if (todayCount >= 3) {
+      throw new Error('Límite de 3 preguntas diarias alcanzado para este grupo.');
+    }
+
     const { data, error } = await supabase
       .from('polls')
       .insert([{
@@ -246,11 +288,23 @@ export const pollService = {
         created_by: userId,
         is_active: true,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        resolution_status: pollType === 'prediction' ? 'open' : null
       }])
       .select()
       .single();
     if (error) throw error;
     return data as Poll;
+  },
+
+  async getTodaysPollCount(groupId: string): Promise<number> {
+    const today = new Date().toISOString().split('T')[0];
+    const { count, error } = await supabase
+      .from('polls')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', groupId)
+      .gte('created_at', `${today}T00:00:00`);
+    if (error) return 0;
+    return count || 0;
   },
 
   async getActivePoll(groupId: string): Promise<Poll | null> {
@@ -274,6 +328,34 @@ export const pollService = {
       .single();
     if (error) return null;
     return data;
+  },
+
+  async resolvePrediction(pollId: string, resolvedTargetId: string, authorId: string) {
+    const { error } = await supabase
+      .from('polls')
+      .update({ resolution_status: 'resolved', resolved_target_id: resolvedTargetId, is_active: false })
+      .eq('id', pollId)
+      .eq('poll_type', 'prediction');
+    if (error) throw error;
+    
+    // Reward users who voted for resolvedTargetId
+    const { data: winningVotes } = await supabase
+      .from('votes')
+      .select('voter_id')
+      .eq('poll_id', pollId)
+      .eq('target_id', resolvedTargetId);
+      
+    if (winningVotes && winningVotes.length > 0) {
+      const winnerIds = winningVotes.map(v => v.voter_id);
+      
+      // Need manual query or loop for updates due to Supabase JS limits with in/update points
+      for (const wid of winnerIds) {
+        const { data: profile } = await supabase.from('profiles').select('points').eq('id', wid).single();
+        if (profile) {
+          await supabase.from('profiles').update({ points: profile.points + 50 }).eq('id', wid);
+        }
+      }
+    }
   },
 
   async hasVoted(pollId: string, userId: string): Promise<boolean> {
@@ -325,6 +407,15 @@ export const pollService = {
     }
   },
 
+  async getVoters(pollId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('votes')
+      .select('voter_id')
+      .eq('poll_id', pollId);
+    if (error) return [];
+    return data.map((v: any) => v.voter_id);
+  },
+
   async getResults(pollId: string): Promise<Record<string, number>> {
     const { data, error } = await supabase
       .from('votes')
@@ -354,15 +445,53 @@ export const commentService = {
     return data;
   },
 
-  async addComment(pollId: string, authorId: string, content: string): Promise<Comment> {
+  async addComment(poll_id: string, author_id: string, content: string): Promise<Comment> {
     const { data, error } = await supabase
       .from('comments')
-      .insert([{ poll_id: pollId, author_id: authorId, content }])
+      .insert([{ poll_id, author_id, content }])
       .select('*, profiles(username, avatar_url)')
       .single();
     if (error) throw error;
     return data;
   },
+};
+
+// ─────────────────────────────────────────────
+// SUMMARY SERVICE
+// ─────────────────────────────────────────────
+
+export const summaryService = {
+  async getSummaries(groupId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('group_summaries')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data;
+  },
+
+  async createSummary(groupId: string, period: 'daily' | 'weekly' | 'monthly' | 'annual', content: string, metadata: any) {
+    const { data, error } = await supabase
+      .from('group_summaries')
+      .insert([{ group_id: groupId, period, content, metadata }])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getSummaryStats(groupId: string) {
+    // Fetch last 3 polls and their results for the daily audit
+    const { data: polls } = await supabase
+      .from('polls')
+      .select('*, votes(target_id), comments(content, profiles(username))')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    return polls;
+  }
 };
 
 // ─────────────────────────────────────────────
@@ -410,4 +539,102 @@ export const questionService = {
       .replace(/\{member_B\}/g, context.memberB || 'Otro')
       .replace(/\{member_count\}/g, String(context.memberCount || 0));
   },
+};
+
+// ─────────────────────────────────────────────
+// NUDGE SERVICE
+// ─────────────────────────────────────────────
+
+export const nudgeService = {
+  async createNudge(pollId: string, senderId: string, receiverId: string) {
+    const { error } = await supabase
+      .from('nudges')
+      .insert([{ poll_id: pollId, sender_id: senderId, receiver_id: receiverId }]);
+    
+    // We throw error if unique constraint fails to show "Ya le has zumbado"
+    if (error) {
+      if (error.code === '23505') throw new Error('Ya le has enviado un zumbido a esta persona para esta encuesta.');
+      throw error;
+    }
+  },
+
+  async getUnreadNudges(userId: string): Promise<Nudge[]> {
+    const { data, error } = await supabase
+      .from('nudges')
+      .select('*, polls(question, rendered_question, groups(name)), sender:profiles!nudges_sender_id_fkey(username)')
+      .eq('receiver_id', userId)
+      .eq('is_read', false);
+    if (error) return [];
+    return data as any as Nudge[];
+  },
+
+  async markAsRead(nudgeIds: string[]) {
+    if (!nudgeIds.length) return;
+    const { error } = await supabase
+      .from('nudges')
+      .update({ is_read: true })
+      .in('id', nudgeIds);
+    if (error) throw error;
+  }
+};
+
+// ─────────────────────────────────────────────
+// SURVIVAL SERVICE
+// ─────────────────────────────────────────────
+
+export const survivalService = {
+  async getActiveGame(groupId: string) {
+    const { data } = await supabase
+      .from('survival_games')
+      .select('*, survival_participants(*)')
+      .eq('group_id', groupId)
+      .eq('status', 'active')
+      .single();
+    
+    if (data) {
+      // Map it so the UI code doesn't break
+      data.participants = data.survival_participants;
+    }
+    return data;
+  },
+
+  async startSurvivalGame(groupId: string, memberIds: string[]) {
+    // 1. Create Game
+    const { data: game, error: gameErr } = await supabase
+      .from('survival_games')
+      .insert([{ group_id: groupId, status: 'active' }])
+      .select()
+      .single();
+    if (gameErr) throw gameErr;
+
+    // 2. Insert Participants
+    const participants = memberIds.map(id => ({
+      game_id: game.id,
+      profile_id: id,
+      is_eliminated: false,
+    }));
+    const { error: partErr } = await supabase
+      .from('survival_participants')
+      .insert(participants);
+    if (partErr) throw partErr;
+
+    return game;
+  },
+
+  async eliminateParticipant(gameId: string, profileId: string) {
+    const { error } = await supabase
+      .from('survival_participants')
+      .update({ is_eliminated: true, eliminated_at: new Date().toISOString() })
+      .eq('game_id', gameId)
+      .eq('profile_id', profileId);
+    if (error) throw error;
+  },
+
+  async finishGame(gameId: string) {
+    const { error } = await supabase
+      .from('survival_games')
+      .update({ status: 'finished' })
+      .eq('id', gameId);
+    if (error) throw error;
+  }
 };

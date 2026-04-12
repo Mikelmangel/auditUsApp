@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
-import { ChevronLeft, Send, Loader2, CheckCircle2, MessageCircle } from "lucide-react";
+import { ChevronLeft, Send, Loader2, CheckCircle2, MessageCircle, BellRing } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { groupService, pollService, commentService, type Poll, type GroupMember, type Comment } from "@/lib/services";
+import { groupService, pollService, commentService, nudgeService, type Poll, type GroupMember, type Comment } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -21,6 +21,8 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [voters, setVoters] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { user } = useAuth();
   const commentsRef = useRef<HTMLDivElement>(null);
 
@@ -30,16 +32,20 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       const p = await pollService.getPoll(id);
       if (!p || !user) { setLoading(false); return; }
       setPoll(p);
-      const [m, v, r, c] = await Promise.all([
+      const [m, v, r, c, votersList] = await Promise.all([
         groupService.getGroupMembers(p.group_id),
         pollService.hasVoted(id, user.id),
         pollService.getResults(id),
         commentService.getComments(id),
+        pollService.getVoters(id),
       ]);
       setMembers(m as GroupMember[]);
       setVoted(v);
       setResults(r);
       setComments(c);
+      setVoters(votersList);
+      const myRole = (m as GroupMember[]).find(x => x.profile_id === user.id)?.role;
+      setIsAdmin(myRole === 'admin' || myRole === 'creator');
       setLoading(false);
 
       // Real-time votes
@@ -62,12 +68,36 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     try {
       await pollService.castVote(poll.id, user.id, targetId);
       setVoted(true);
+      setVoters(prev => [...prev, user.id]);
       const r = await pollService.getResults(poll.id);
       setResults(r);
       toast.success("¡Voto registrado! +10 puntos");
     } catch (e: any) {
       toast.error(e.message);
       setSelectedId(null);
+    } finally { setSubmitting(false); }
+  };
+
+  const sendNudge = async (receiverId: string) => {
+    if (!poll || !user) return;
+    try {
+      await nudgeService.createNudge(poll.id, user.id, receiverId);
+      toast.success("¡Zumbido enviado!");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const resolvePrediction = async (targetId: string) => {
+    if (!poll || !user || !isAdmin) return;
+    if (!confirm("¿Seguro que quieres resolver la predicción a favor de esta persona? Esto dará 50 puntos a los acertantes.")) return;
+    setSubmitting(true);
+    try {
+      await pollService.resolvePrediction(poll.id, targetId, user.id);
+      setPoll({ ...poll, is_active: false, resolution_status: 'resolved', resolved_target_id: targetId });
+      toast.success("¡Predicción resuelta y puntos repartidos!");
+    } catch (e: any) {
+      toast.error(e.message);
     } finally { setSubmitting(false); }
   };
 
@@ -146,6 +176,11 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               {totalVotes} {totalVotes === 1 ? "voto" : "votos"}
             </p>
           )}
+          {poll.poll_type === 'prediction' && poll.resolution_status === 'open' && (
+            <div style={{ background: "#fef3c7", padding: "8px 12px", borderRadius: 10, marginTop: 12, display: "inline-block" }}>
+              <p style={{ fontSize: 13, color: "#92400e", fontWeight: 700 }}>🔮 PREDICCIÓN (Resultados ocultos)</p>
+            </div>
+          )}
         </div>
 
         {/* Members to vote / Results */}
@@ -153,22 +188,24 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           {members.map((m) => {
             const count = results[m.profile_id] || 0;
             const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-            const isWinner = voted && m.profile_id === leaderId && totalVotes > 0;
+            const isWinner = voted && m.profile_id === leaderId && totalVotes > 0 && poll.poll_type !== 'prediction';
             const isSelected = selectedId === m.profile_id;
             const isMe = m.profile_id === user?.id;
+            const isPredictionOpen = poll.poll_type === 'prediction' && poll.resolution_status === 'open';
+            const isResolvedWinner = poll.poll_type === 'prediction' && poll.resolution_status === 'resolved' && poll.resolved_target_id === m.profile_id;
 
             return (
               <motion.div key={m.profile_id} whileTap={!voted ? { scale: 0.98 } : {}}
                 onClick={() => !voted && vote(m.profile_id)}
                 style={{
                   background: "white", borderRadius: 20, padding: "14px 16px",
-                  border: isWinner ? "2px solid #10b981" : isSelected ? "2px solid #10b981" : "1px solid #f3f4f6",
+                  border: isResolvedWinner ? "3px solid #f59e0b" : (isWinner ? "2px solid #10b981" : isSelected ? "2px solid #10b981" : "1px solid #f3f4f6"),
                   cursor: voted ? "default" : "pointer",
                   transition: "all 0.2s",
                   position: "relative", overflow: "hidden",
                 }}>
-                {/* Progress bar fill (when voted) */}
-                {voted && (
+                {/* Progress bar fill (when voted, unless hidden prediction) */}
+                {voted && !isPredictionOpen && (
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
@@ -190,22 +227,34 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       </span>
                       {isMe && <span style={{ fontSize: 11, color: "#6b7280" }}>(Tú)</span>}
                     </div>
-                    {voted && (
+                    {voted && !isPredictionOpen && (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                         <div className="progress-bar" style={{ flex: 1, height: 6 }}>
-                          <motion.div className="progress-fill"
+                          <motion.div className="progress-fill" style={{ background: isResolvedWinner ? "#f59e0b" : undefined }}
                             initial={{ width: 0 }} animate={{ width: `${pct}%` }}
                             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
                           />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isWinner ? "#10b981" : "#6b7280", minWidth: 36 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isResolvedWinner ? "#f59e0b" : (isWinner ? "#10b981" : "#6b7280"), minWidth: 36 }}>
                           {pct}%
                         </span>
                       </div>
                     )}
+                    {voted && isPredictionOpen && (
+                      <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>Resultados ocultos...</p>
+                    )}
                   </div>
                   {voted && isWinner && <CheckCircle2 size={22} color="#10b981" style={{ flexShrink: 0 }} />}
+                  {isResolvedWinner && <div style={{ fontSize: 20 }}>🏆</div>}
                   {submitting && isSelected && <Loader2 size={20} className="animate-spin" color="#10b981" style={{ flexShrink: 0 }} />}
+                  
+                  {/* Botón de Resolver (Solo Admins) */}
+                  {isAdmin && isPredictionOpen && (
+                    <button onClick={(e) => { e.stopPropagation(); resolvePrediction(m.profile_id); }}
+                      className="btn-secondary" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 12, borderColor: "#f59e0b", color: "#b45309", zIndex: 10, position: "relative" }}>
+                      Resolver Aquí
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );
@@ -248,6 +297,41 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 <Send size={18} color="white" />
               </button>
             </form>
+          </div>
+        )}
+
+        {/* Faltan por votar (Zumbidos) */}
+        {voted && (
+          <div style={{ marginTop: 24 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
+              Faltan por votar
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {members.filter(m => !voters.includes(m.profile_id)).map(m => (
+                <div key={m.profile_id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  background: "white", padding: "10px 14px", borderRadius: 14,
+                  border: "1px solid #f3f4f6"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={32} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{m.profiles?.username}</span>
+                  </div>
+                  <button 
+                    onClick={() => sendNudge(m.profile_id)}
+                    className="btn-secondary" 
+                    style={{ padding: "6px 12px", borderRadius: 10, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <BellRing size={14} /> Zumbar
+                  </button>
+                </div>
+              ))}
+              {members.filter(m => !voters.includes(m.profile_id)).length === 0 && (
+                <p style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", padding: "16px 0" }}>
+                  ¡Todo el grupo ha votado!
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>

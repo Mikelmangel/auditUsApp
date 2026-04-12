@@ -1,6 +1,9 @@
 {
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/cron/questions/route": "app/api/cron/questions/route.js",
+  "/api/cron/summary/route": "app/api/cron/summary/route.js",
+  "/api/groups/[id]/audit/route": "app/api/groups/[id]/audit/route.js",
   "/auth/callback/route": "app/auth/callback/route.js",
   "/auth/page": "app/auth/page.js",
   "/explore/page": "app/explore/page.js",

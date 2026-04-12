@@ -1,0 +1,27 @@
+name: Automated AuditUs Cycles
+
+on:
+  schedule:
+    # 07:00, 12:00, 17:00 CEST (05:00, 10:00, 15:00 UTC) - Questions
+    - cron: '0 5,10,15 * * *'
+    # 20:00 CEST (18:00 UTC) - Summary
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Permite ejecución manual para pruebas
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Automated Questions
+        # Ejecutar si el cron es uno de los de las preguntas o si es manual
+        if: github.event.schedule != '0 18 * * *'
+        run: |
+          curl -f -X GET "https://auditus-app.vercel.app/api/cron/questions" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          
+      - name: Trigger Daily Summary
+        # Ejecutar si es el cron de las 18:00 UTC o si es manual
+        if: github.event.schedule == '0 18 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -f -X GET "https://auditus-app.vercel.app/api/cron/summary" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

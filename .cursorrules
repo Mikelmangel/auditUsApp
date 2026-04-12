@@ -1,0 +1,5 @@
+# AuditUs - AI Instructions
+
+- **Supabase Migrations**: Always remind the user to run `supabase db push` or use the Supabase panel whenever a new migration file is created.
+- **Vercel Deployment**: Remind the user to run `vercel --prod` to push changes to production if automation is not used.
+- **UI Quality**: Prioritize high-fidelity, premium designs with motion and modern aesthetics.
