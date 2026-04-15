@@ -7,10 +7,12 @@
   "/auth/callback/route": "/auth/callback",
   "/auth/page": "/auth",
   "/explore/page": "/explore",
+  "/groups/%5Bid%5D/page": "/groups/%5Bid%5D",
   "/groups/[id]/page": "/groups/[id]",
   "/groups/new/page": "/groups/new",
   "/leaderboard/page": "/leaderboard",
   "/page": "/",
+  "/poll/%5Bid%5D/page": "/poll/%5Bid%5D",
   "/poll/[id]/page": "/poll/[id]",
   "/profile/page": "/profile"
 }

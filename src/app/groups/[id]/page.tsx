@@ -162,7 +162,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     </div>
   );
 
-  const activePoll = polls.find(p => p.is_active);
+  const activePolls = polls.filter(p => p.is_active && (!p.expires_at || new Date(p.expires_at) > new Date()));
   const ranking = [...members].sort((a, b) => (b.profiles?.points || 0) - (a.profiles?.points || 0));
   const currentUserRole = members.find(m => m.profile_id === user?.id)?.role;
   const isAdmin = currentUserRole === "admin" || currentUserRole === "creator";
@@ -226,56 +226,71 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
           </div>
         </div>
 
-        {/* Active poll or create CTA */}
-        {activePoll ? (
-          <Link href={`/poll/${activePoll.id}`} style={{ textDecoration: "none" }}>
-            <motion.div whileTap={{ scale: 0.98 }} style={{
-              background: "#10b981", borderRadius: 20, padding: "16px",
-              cursor: "pointer",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div className="live-dot" style={{ background: "white" }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Activo
-                </span>
-                {activePoll.poll_type === 'prediction' && (
-                  <span style={{ marginLeft: "auto", fontSize: 11, background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: 10, color: "white", fontWeight: 700 }}>PREDICCIÓN</span>
-                )}
-              </div>
-              <p style={{ fontWeight: 700, color: "white", fontSize: 16, lineHeight: 1.4 }}>
-                {activePoll.rendered_question || activePoll.question}
-              </p>
-              <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 8 }}>
-                Toca para interactuar →
-              </p>
-            </motion.div>
-          </Link>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button onClick={createPoll} disabled={creating || pollCount >= 3} className="btn-primary" style={{ padding: "16px", borderRadius: 20 }}>
-              {creating ? <Loader2 size={20} className="animate-spin" /> : (pollCount >= 3 ? <Check size={20} /> : <Plus size={20} />)}
-              {creating ? "Lanzando encuesta..." : (pollCount >= 3 ? "Límite diario alcanzado" : `Lanzar encuesta aleatoria (${pollCount}/3)`)}
-            </button>
-            <button onClick={() => setShowPredictionForm(!showPredictionForm)} disabled={creating || pollCount >= 3} className="btn-secondary" style={{ padding: "14px", borderRadius: 16, border: "1.5px dashed #10b981", color: "#10b981" }}>
-              🔮 Crear una Predicción Manual
-            </button>
-            
-            <AnimatePresence>
-              {showPredictionForm && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
-                  <div style={{ background: "white", padding: 16, borderRadius: 16, border: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Escribe sobre qué quieres que apueste el grupo:</p>
-                    <input className="input" placeholder="Ej: ¿Quién va a llegar más tarde hoy?" value={predictionText} onChange={e => setPredictionText(e.target.value)} />
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowPredictionForm(false)}>Cancelar</button>
-                      <button className="btn-primary" style={{ flex: 1 }} onClick={createPrediction} disabled={creating || !predictionText}>Lanzar</button>
+        {/* Active polls and create CTA */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {activePolls.map(activePoll => (
+            <Link key={activePoll.id} href={`/poll/${activePoll.id}`} style={{ textDecoration: "none" }}>
+              <motion.div whileTap={{ scale: 0.98 }} style={{
+                background: "#10b981", borderRadius: 20, padding: "16px",
+                cursor: "pointer",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div className="live-dot" style={{ background: "white" }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    Activo (Hasta {new Date(activePoll.expires_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                  </span>
+                  {activePoll.poll_type === 'prediction' && (
+                    <span style={{ marginLeft: "auto", fontSize: 11, background: "rgba(255,255,255,0.2)", padding: "2px 8px", borderRadius: 10, color: "white", fontWeight: 700 }}>PREDICCIÓN</span>
+                  )}
+                </div>
+                <p style={{ fontWeight: 700, color: "white", fontSize: 16, lineHeight: 1.4 }}>
+                  {activePoll.rendered_question || activePoll.question}
+                </p>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 8 }}>
+                  Toca para interactuar →
+                </p>
+              </motion.div>
+            </Link>
+          ))}
+
+          {pollCount < 3 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button 
+                onClick={createPoll} 
+                disabled={creating} 
+                className="btn-primary" 
+                style={{ padding: "16px", borderRadius: 20 }}
+              >
+                {creating ? <Loader2 size={20} className="animate-spin" /> : <Plus size={20} />}
+                {creating ? "Lanzando encuesta..." : `Lanzar encuesta aleatoria (${pollCount}/3)`}
+              </button>
+              
+              <button 
+                onClick={() => setShowPredictionForm(!showPredictionForm)} 
+                disabled={creating} 
+                className="btn-secondary" 
+                style={{ padding: "14px", borderRadius: 16, border: "1.5px dashed #10b981", color: "#10b981" }}
+              >
+                🔮 Crear una Predicción Manual
+              </button>
+              
+              <AnimatePresence>
+                {showPredictionForm && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: "hidden" }}>
+                    <div style={{ background: "white", padding: 16, borderRadius: 16, border: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Escribe sobre qué quieres que apueste el grupo:</p>
+                      <input className="input" placeholder="Ej: ¿Quién va a llegar más tarde hoy?" value={predictionText} onChange={e => setPredictionText(e.target.value)} />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowPredictionForm(false)}>Cancelar</button>
+                        <button className="btn-primary" style={{ flex: 1 }} onClick={createPrediction} disabled={creating || !predictionText}>Lanzar</button>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="pill-tabs" style={{ marginTop: 4, overflowX: "auto" }}>
@@ -298,10 +313,10 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 <Link key={poll.id} href={`/poll/${poll.id}`} style={{ textDecoration: "none", display: "block", marginBottom: 8 }}>
                   <div style={{
                     background: "white", borderRadius: 16, padding: "14px 16px",
-                    border: poll.is_active ? "1.5px solid #10b981" : "1px solid #f3f4f6",
+                    border: poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()) ? "1.5px solid #10b981" : "1px solid #f3f4f6",
                     display: "flex", alignItems: "center", gap: 12,
                   }}>
-                    {poll.is_active && <div className="live-dot" />}
+                    {poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()) && <div className="live-dot" />}
                     <p style={{ flex: 1, fontWeight: 600, color: "#111827", fontSize: 14, lineHeight: 1.4 }}>
                       {poll.rendered_question || poll.question}
                     </p>
@@ -483,7 +498,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                           <Link key={poll.id} href={`/poll/${poll.id}`} style={{ textDecoration: "none", display: "block", marginBottom: 8 }}>
                             <div style={{
                               background: "white", borderRadius: 16, padding: "14px 16px",
-                              border: poll.is_active && isTodayDate(selectedDate) ? "1.5px solid #10b981" : "1px solid #f3f4f6",
+                              border: poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()) && isTodayDate(selectedDate) ? "1.5px solid #10b981" : "1px solid #f3f4f6",
                               display: "flex", alignItems: "center", gap: 12,
                             }}>
                               <p style={{ flex: 1, fontWeight: 600, color: "#111827", fontSize: 14, lineHeight: 1.4 }}>

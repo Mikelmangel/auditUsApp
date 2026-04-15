@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { BottomNav, Avatar, EmptyState } from "@/components/ui";
-import { Users, Plus, ChevronRight, Bell, Zap, Flame, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BottomNav, Avatar, EmptyState, SectionTitle, Card } from "@/components/ui";
+import { Users, Plus, ChevronRight, Bell, Zap, Flame, Loader2, Sparkles } from "lucide-react";
 import { groupService, profileService, pollService, type Group, type Profile } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
@@ -36,137 +37,155 @@ export default function Home() {
   }, [user, authLoading]);
 
   if (authLoading || loading) {
-    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100svh" }}>
-      <Loader2 size={32} className="animate-spin" style={{ color: "#10b981" }} />
-    </div>;
+    return (
+      <div className="min-h-svh flex items-center justify-center bg-black">
+        <Loader2 size={40} className="animate-spin text-emerald-500 opacity-50" />
+      </div>
+    );
   }
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100svh", background: "#f9fafb" }}>
+    <div className="min-h-svh bg-black relative overflow-x-hidden">
+      {/* Background Mesh */}
+      <div className="bg-mesh" />
+
       {/* Header */}
-      <div style={{
-        padding: "56px 16px 16px", background: "white",
-        borderBottom: "1px solid #f3f4f6", display: "flex",
-        alignItems: "center", justifyContent: "space-between",
-      }}>
-        <div>
-          <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 2 }}>
-            Hola, {profile?.username || "amigo"} ��
-          </p>
-          <h1 style={{ fontSize: 24, fontWeight: 800 }}>Tus Grupos</h1>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
+      <header className="px-6 pt-14 pb-8 relative z-10">
+        <div className="flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/60 mb-1">
+              SISTEMA ACTIVO
+            </p>
+            <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase">
+              AuditUs
+            </h1>
+          </motion.div>
           <Link href="/profile">
-            <Avatar src={profile?.avatar_url} name={profile?.username} size={44} />
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Avatar src={profile?.avatar_url} name={profile?.username} size={52} className="border-2 border-emerald-500/20" />
+            </motion.div>
           </Link>
         </div>
-      </div>
+      </header>
 
-      {/* Stats strip */}
-      {profile && (
-        <div style={{
-          display: "flex", background: "white", borderBottom: "1px solid #f3f4f6",
-          padding: "12px 16px", gap: 24,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Flame size={16} style={{ color: "#f97316" }} />
-            <span style={{ fontWeight: 700, color: "#111827" }}>{profile.current_streak || 0}</span>
-            <span style={{ fontSize: 13, color: "#6b7280" }}>racha</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Zap size={16} style={{ color: "#10b981" }} />
-            <span style={{ fontWeight: 700, color: "#111827" }}>{profile.points || 0}</span>
-            <span style={{ fontSize: 13, color: "#6b7280" }}>puntos</span>
-          </div>
-        </div>
-      )}
+      {/* Stats Strip */}
+      <AnimatePresence>
+        {profile && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-6 mb-8"
+          >
+            <div className="flex bg-white/[0.03] backdrop-blur-xl border border-white/5 rounded-2xl p-4 justify-around shadow-2xl">
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Flame size={14} className="text-orange-500" />
+                  <span className="text-xl font-black text-white">{profile.current_streak || 0}</span>
+                </div>
+                <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">RACHA</span>
+              </div>
+              <div className="h-8 w-px bg-white/5 self-center" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Zap size={14} className="text-emerald-500" />
+                  <span className="text-xl font-black text-white">{profile.points || 0}</span>
+                </div>
+                <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">PUNTOS</span>
+              </div>
+              <div className="h-8 w-px bg-white/5 self-center" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-purple-500" />
+                  <span className="text-xl font-black text-white">{groups.length}</span>
+                </div>
+                <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">GRUPOS</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Body */}
-      <div style={{ padding: "16px 16px 96px" }}>
+      <main className="px-6 pb-32 relative z-10 max-w-[430px] mx-auto">
+        <SectionTitle>Tus Conexiones</SectionTitle>
+
         {groups.length === 0 ? (
-          <div style={{ marginTop: 40 }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8">
             <EmptyState
               icon={Users}
-              title="Aún no tienes grupos"
-              message="Crea un grupo o únete con un código de invitación"
+              title="SOLITARIO EN EL SISTEMA"
+              message="No tienes grupos activos. Crea uno o usa un código de acceso para comenzar el audit."
               action={
-                <Link href="/groups/new">
-                  <button className="btn-primary" style={{ marginTop: 8 }}>
-                    <Plus size={18} /> Crear mi primer grupo
+                <Link href="/groups/new" className="w-full">
+                  <button className="btn-primary">
+                    <Plus size={20} className="mr-2" /> CREAR GRUPO
                   </button>
                 </Link>
               }
             />
-          </div>
+          </motion.div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="grid gap-4">
             {/* New group CTA */}
-            <Link href="/groups/new" style={{ textDecoration: "none" }}>
-              <motion.div whileTap={{ scale: 0.98 }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  background: "#ecfdf5", border: "1.5px dashed #10b981",
-                  borderRadius: 20, padding: "14px 16px", cursor: "pointer",
-                }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: "50%", background: "#10b981",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <Plus size={22} color="white" />
+            <Link href="/groups/new">
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="bg-emerald-500/10 border-2 border-dashed border-emerald-500/30 rounded-3xl p-6 flex items-center gap-5 group transition-all"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Plus size={24} className="text-black font-bold" />
                 </div>
                 <div>
-                  <p style={{ fontWeight: 700, color: "#059669" }}>Crear o unirse a un grupo</p>
-                  <p style={{ fontSize: 13, color: "#6b7280" }}>Añade amigos con un código</p>
+                  <h3 className="text-emerald-500 font-black text-sm uppercase tracking-widest">NUEVA CONEXIÓN</h3>
+                  <p className="text-emerald-500/50 text-xs font-bold uppercase tracking-tight">Expandir red de AuditUs</p>
                 </div>
               </motion.div>
             </Link>
 
-            {/* Group list */}
+            {/* List */}
             {groups.map((group, i) => (
-              <Link key={group.id} href={`/groups/${group.id}`} style={{ textDecoration: "none" }}>
+              <Link key={group.id} href={`/groups/${group.id}`}>
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    background: "white", borderRadius: 20, padding: "14px 16px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.07)", border: "1px solid #f3f4f6",
-                    cursor: "pointer",
-                  }}>
-                  {/* Emoji avatar */}
-                  <div style={{
-                    width: 50, height: 50, borderRadius: "50%",
-                    background: "#f3f4f6", display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                    fontSize: 24, flexShrink: 0,
-                  }}>
+                  className="bg-white/5 backdrop-blur-xl border border-white/5 rounded-3xl p-5 flex items-center gap-5 hover:bg-white/[0.08] transition-all"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-3xl border border-white/10 shadow-inner">
                     {group.avatar_emoji || "🔮"}
                   </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <p style={{ fontWeight: 700, color: "#111827", fontSize: 16, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-white font-bold text-base truncate uppercase tracking-tight">
                         {group.name}
-                      </p>
+                      </h3>
                       {activePollsByGroup[group.id] && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/20 rounded-full">
                           <div className="live-dot" />
-                          <span style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>ACTIVA</span>
+                          <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">LIVE</span>
                         </div>
                       )}
                     </div>
-                    <p style={{ fontSize: 13, color: "#9ca3af" }}>
-                      {group.member_count || 0} miembros · {group.invite_code}
-                    </p>
+                    <div className="flex items-center gap-3 text-white/30 text-[10px] font-bold uppercase tracking-widest">
+                      <span>{group.member_count || 0} MIEMBROS</span>
+                      <span className="w-1 h-1 bg-white/10 rounded-full" />
+                      <span className="text-emerald-500/40">{group.invite_code}</span>
+                    </div>
                   </div>
-                  <ChevronRight size={18} color="#d1d5db" />
+                  <ChevronRight size={20} className="text-white/10 group-hover:text-emerald-500 transition-colors" />
                 </motion.div>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </main>
 
       <BottomNav />
     </div>

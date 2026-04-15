@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PremiumButton, PremiumCard, cn } from "@/components/ui";
+import { Button } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import { ChevronRight, Sparkles, ShieldCheck, Zap } from "lucide-react";
 
 interface Slide {
@@ -101,14 +102,14 @@ export function MagicOnboarding({ onComplete }: { onComplete: () => void }) {
           </div>
         </div>
 
-        <PremiumButton 
+        <Button 
           fullWidth 
           className="py-7 text-sm"
           onClick={next}
         >
           {current === slides.length - 1 ? "Entrar en el Protocolo" : "Siguiente Fase"}
           <ChevronRight className="ml-2" size={16} />
-        </PremiumButton>
+        </Button>
 
         <button 
           onClick={onComplete}

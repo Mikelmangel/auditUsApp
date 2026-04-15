@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { groupService, summaryService, survivalService } from "@/lib/services";
+import { groupService, summaryService, survivalService, pollService } from "@/lib/services";
 import { gemini } from "@/lib/gemini";
 
 export async function GET(request: Request) {
@@ -59,6 +59,10 @@ export async function GET(request: Request) {
 
           const auditContent = await gemini.generateSummary("Hoy", group.name, stats);
           await summaryService.createSummary(group.id, "daily", auditContent + extraContext, stats);
+          
+          // Cerrar todas las encuestas activas para que no se arrastren al siguiente día
+          await pollService.closeActivePolls(group.id);
+
           results.push({ groupId: group.id, status: 'success' });
         } else {
           results.push({ groupId: group.id, status: 'no_data_for_today' });

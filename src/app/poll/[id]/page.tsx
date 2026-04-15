@@ -101,6 +101,18 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     } finally { setSubmitting(false); }
   };
 
+  const closePollManually = async () => {
+    if (!poll || !isAdmin) return;
+    if (!confirm("¿Seguro que quieres cerrar esta encuesta? Nadie más podrá votar.")) return;
+    try {
+      await pollService.closePoll(poll.id);
+      setPoll({ ...poll, is_active: false });
+      toast.success("Encuesta cerrada.");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
   const sendComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !poll || !user) return;
@@ -180,6 +192,16 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
             <div style={{ background: "#fef3c7", padding: "8px 12px", borderRadius: 10, marginTop: 12, display: "inline-block" }}>
               <p style={{ fontSize: 13, color: "#92400e", fontWeight: 700 }}>🔮 PREDICCIÓN (Resultados ocultos)</p>
             </div>
+          )}
+          
+          {isAdmin && poll.is_active && poll.poll_type !== 'prediction' && (
+            <button 
+              onClick={closePollManually} 
+              className="btn-secondary" 
+              style={{ padding: "8px 16px", borderRadius: 12, marginTop: 16, width: "100%", fontSize: 13, color: "#ef4444", borderColor: "#fca5a5" }}
+            >
+              Cerrar Encuesta
+            </button>
           )}
         </div>
 

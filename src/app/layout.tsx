@@ -4,12 +4,18 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "sonner";
 import { NudgeListener } from "@/components/NudgeListener";
 
+export const viewport = {
+  themeColor: "#10b981",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "AuditUs | Social Polls",
   description: "Encuestas sociales para grupos de amigos",
   manifest: "/manifest.json",
-  themeColor: "#10b981",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

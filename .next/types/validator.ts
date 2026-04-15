@@ -65,6 +65,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/groups/%5Bid%5D/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/groups/%5Bid%5D">> = Specific
+  const handler = {} as typeof import("../../src/app/groups/%5Bid%5D/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/groups/[id]/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/groups/[id]">> = Specific
@@ -96,6 +105,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/">> = Specific
   const handler = {} as typeof import("../../src/app/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/poll/%5Bid%5D/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/poll/%5Bid%5D">> = Specific
+  const handler = {} as typeof import("../../src/app/poll/%5Bid%5D/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

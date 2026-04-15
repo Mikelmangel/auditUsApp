@@ -416,17 +416,34 @@ export const pollService = {
     return data.map((v: any) => v.voter_id);
   },
 
-  async getResults(pollId: string): Promise<Record<string, number>> {
-    const { data, error } = await supabase
+  async getResults(pollId: string) {
+    const { data } = await supabase
       .from('votes')
       .select('target_id')
       .eq('poll_id', pollId);
-    if (error) return {};
-
-    return data.reduce((acc: Record<string, number>, curr: any) => {
-      acc[curr.target_id] = (acc[curr.target_id] || 0) + 1;
+    
+    if (!data) return {};
+    return data.reduce((acc: any, vote) => {
+      acc[vote.target_id] = (acc[vote.target_id] || 0) + 1;
       return acc;
     }, {});
+  },
+
+  async closePoll(pollId: string) {
+    const { error } = await supabase
+      .from('polls')
+      .update({ is_active: false })
+      .eq('id', pollId);
+    if (error) throw error;
+  },
+
+  async closeActivePolls(groupId: string) {
+    const { error } = await supabase
+      .from('polls')
+      .update({ is_active: false })
+      .eq('group_id', groupId)
+      .eq('is_active', true);
+    if (error) throw error;
   },
 };
 
@@ -489,6 +506,32 @@ export const summaryService = {
       .eq('group_id', groupId)
       .order('created_at', { ascending: false })
       .limit(3);
+
+    // Fetch members to map UUID to username
+    const { data: members } = await supabase
+      .from('group_members')
+      .select('profile_id, profiles(username)')
+      .eq('group_id', groupId);
+
+    const nameMap: Record<string, string> = {};
+    if (members) {
+      members.forEach((m: any) => {
+        if (m.profiles?.username) {
+          nameMap[m.profile_id] = m.profiles.username;
+        }
+      });
+    }
+
+    // Replace target_id with usernames in votes
+    if (polls) {
+      polls.forEach(poll => {
+        if (poll.votes) {
+          poll.votes = poll.votes.map((v: any) => ({
+            target_username: nameMap[v.target_id] || v.target_id
+          }));
+        }
+      });
+    }
 
     return polls;
   }
@@ -553,7 +596,9 @@ export const nudgeService = {
     
     // We throw error if unique constraint fails to show "Ya le has zumbado"
     if (error) {
-      if (error.code === '23505') throw new Error('Ya le has enviado un zumbido a esta persona para esta encuesta.');
+      if (String(error.code) === '23505' || error.message?.includes('duplicate key')) {
+        throw new Error('Ya le has enviado un zumbido a esta persona para esta encuesta.');
+      }
       throw error;
     }
   },
