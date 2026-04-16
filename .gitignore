@@ -1,5 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# Next.js build output
+.next/
+out/
+
 # dependencies
 node_modules/
 
