@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     output: "export",
     trailingSlash: true,
   }),
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   images: {
     remotePatterns: [
       {
