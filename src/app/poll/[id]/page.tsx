@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
-import { ChevronLeft, Send, Loader2, CheckCircle2, MessageCircle, BellRing } from "lucide-react";
+import { ChevronLeft, Send, Loader2, CheckCircle2, MessageCircle, BellRing, Lock } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { groupService, pollService, commentService, nudgeService, type Poll, type GroupMember, type Comment } from "@/lib/services";
@@ -48,7 +48,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       setIsAdmin(myRole === 'admin' || myRole === 'creator');
       setLoading(false);
 
-      // Real-time votes
       const sub = supabase.channel(`poll-${id}`)
         .on("postgres_changes", {
           event: "INSERT", schema: "public", table: "votes",
@@ -125,157 +124,209 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   };
 
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100svh" }}>
-      <Loader2 size={32} className="animate-spin" style={{ color: "#10b981" }} />
+    <div className="flex items-center justify-center h-svh">
+      <Loader2 size={36} className="animate-spin text-emerald-500" />
     </div>
   );
 
   if (!poll) return (
-    <div style={{ padding: "60px 16px", textAlign: "center" }}>
-      <p style={{ color: "#9ca3af" }}>Encuesta no encontrada</p>
-      <Link href="/"><button className="btn-primary" style={{ marginTop: 24, maxWidth: 200 }}>Volver</button></Link>
+    <div className="flex flex-col items-center justify-center h-svh gap-6 px-6 text-center">
+      <p className="text-white/40 text-lg font-bold">Encuesta no encontrada</p>
+      <Link href="/">
+        <button className="btn-primary" style={{ maxWidth: 200 }}>Volver al inicio</button>
+      </Link>
     </div>
   );
 
   const totalVotes = Object.values(results).reduce((a, b) => a + b, 0);
   const leaderId = Object.entries(results).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const isPredictionOpen = poll.poll_type === 'prediction' && poll.resolution_status === 'open';
 
   return (
-    <div style={{ maxWidth: 430, margin: "0 auto", minHeight: "100svh", background: "#f9fafb" }}>
+    <div className="min-h-svh flex flex-col">
       {/* Header */}
-      <div style={{
-        background: "white", borderBottom: "1px solid #f3f4f6",
-        padding: "56px 16px 16px", display: "flex", alignItems: "center", gap: 12,
-      }}>
+      <header className="px-5 pt-14 pb-5 flex items-center gap-4 border-b border-white/[0.06]">
         <Link href={`/groups/${poll.group_id}`}>
-          <button className="btn-ghost" style={{ padding: 8, borderRadius: 12 }}>
-            <ChevronLeft size={24} />
-          </button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.92 }}
+            className="w-10 h-10 rounded-[14px] bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+          >
+            <ChevronLeft size={20} />
+          </motion.button>
         </Link>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/50 mb-0.5 truncate">
             {(poll.groups as any)?.name || "Encuesta"}
           </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-            {poll.is_active && <div className="live-dot" />}
-            <h1 style={{ fontSize: 18, fontWeight: 800 }}>
-              {poll.is_active ? "Encuesta activa" : "Encuesta cerrada"}
+          <div className="flex items-center gap-2">
+            {poll.is_active && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" />
+            )}
+            <h1 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none truncate">
+              {poll.is_active ? "Encuesta Activa" : "Encuesta Cerrada"}
             </h1>
           </div>
         </div>
-        <button onClick={() => setShowComments(s => !s)} style={{
-          display: "flex", alignItems: "center", gap: 6, background: "none",
-          border: "none", cursor: "pointer", color: "#6b7280", fontWeight: 600,
-          padding: "8px 12px", borderRadius: 12,
-        }}>
-          <MessageCircle size={18} />
-          <span style={{ fontSize: 13 }}>{comments.length}</span>
-        </button>
-      </div>
 
-      <div style={{ padding: "16px 16px 96px" }}>
-        {/* Question */}
-        <div style={{
-          background: "white", borderRadius: 20, padding: "20px",
-          marginBottom: 16, border: "1px solid #f3f4f6",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        }}>
-          <p style={{ fontSize: 20, fontWeight: 800, color: "#111827", lineHeight: 1.4, textAlign: "center" }}>
+        <button
+          onClick={() => setShowComments(s => !s)}
+          className={`flex items-center gap-2 px-3 py-2 rounded-[14px] border transition-all ${
+            showComments
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+              : "bg-white/[0.04] border-white/[0.08] text-white/50 hover:text-white/80"
+          }`}
+        >
+          <MessageCircle size={16} />
+          <span className="text-xs font-black">{comments.length}</span>
+        </button>
+      </header>
+
+      <div className="px-5 pt-6 pb-40 flex-1 max-w-[430px] mx-auto w-full flex flex-col gap-5">
+        {/* Question Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-elevated p-6 text-center relative overflow-hidden"
+        >
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 blur-[60px] rounded-full" />
+
+          <p className="text-lg font-black text-white leading-snug tracking-tight relative z-10">
             {poll.rendered_question || poll.question}
           </p>
+
           {totalVotes > 0 && (
-            <p style={{ textAlign: "center", fontSize: 13, color: "#9ca3af", marginTop: 10 }}>
-              {totalVotes} {totalVotes === 1 ? "voto" : "votos"}
+            <p className="text-white/30 text-xs font-black uppercase tracking-widest mt-3">
+              {totalVotes} {totalVotes === 1 ? "VOTO" : "VOTOS"}
             </p>
           )}
+
           {poll.poll_type === 'prediction' && poll.resolution_status === 'open' && (
-            <div style={{ background: "#fef3c7", padding: "8px 12px", borderRadius: 10, marginTop: 12, display: "inline-block" }}>
-              <p style={{ fontSize: 13, color: "#92400e", fontWeight: 700 }}>🔮 PREDICCIÓN (Resultados ocultos)</p>
+            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2 mt-4">
+              <Lock size={12} className="text-amber-400" />
+              <p className="text-xs font-black text-amber-400 uppercase tracking-wider">Predicción — Resultados ocultos</p>
             </div>
           )}
-          
+
           {isAdmin && poll.is_active && poll.poll_type !== 'prediction' && (
-            <button 
-              onClick={closePollManually} 
-              className="btn-secondary" 
-              style={{ padding: "8px 16px", borderRadius: 12, marginTop: 16, width: "100%", fontSize: 13, color: "#ef4444", borderColor: "#fca5a5" }}
+            <button
+              onClick={closePollManually}
+              className="mt-5 w-full py-3 rounded-[14px] bg-red-500/8 border border-red-500/15 text-red-400 text-xs font-black uppercase tracking-wider hover:bg-red-500/12 transition-all"
             >
-              Cerrar Encuesta
+              Cerrar encuesta
             </button>
           )}
-        </div>
+        </motion.div>
 
-        {/* Members to vote / Results */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {members.map((m) => {
+        {/* Member Voting Cards */}
+        <div className="flex flex-col gap-3">
+          {members.map((m, i) => {
             const count = results[m.profile_id] || 0;
             const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
             const isWinner = voted && m.profile_id === leaderId && totalVotes > 0 && poll.poll_type !== 'prediction';
             const isSelected = selectedId === m.profile_id;
             const isMe = m.profile_id === user?.id;
-            const isPredictionOpen = poll.poll_type === 'prediction' && poll.resolution_status === 'open';
             const isResolvedWinner = poll.poll_type === 'prediction' && poll.resolution_status === 'resolved' && poll.resolved_target_id === m.profile_id;
+            const canVote = !voted && poll.is_active;
 
             return (
-              <motion.div key={m.profile_id} whileTap={!voted ? { scale: 0.98 } : {}}
-                onClick={() => !voted && vote(m.profile_id)}
-                style={{
-                  background: "white", borderRadius: 20, padding: "14px 16px",
-                  border: isResolvedWinner ? "3px solid #f59e0b" : (isWinner ? "2px solid #10b981" : isSelected ? "2px solid #10b981" : "1px solid #f3f4f6"),
-                  cursor: voted ? "default" : "pointer",
-                  transition: "all 0.2s",
-                  position: "relative", overflow: "hidden",
-                }}>
-                {/* Progress bar fill (when voted, unless hidden prediction) */}
-                {voted && !isPredictionOpen && (
+              <motion.div
+                key={m.profile_id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={canVote ? { scale: 1.015 } : {}}
+                whileTap={canVote ? { scale: 0.98 } : {}}
+                onClick={() => canVote && vote(m.profile_id)}
+                className={`relative overflow-hidden rounded-[24px] p-5 border transition-all duration-300 ${
+                  canVote ? "cursor-pointer" : "cursor-default"
+                } ${
+                  isResolvedWinner
+                    ? "border-amber-500/40 bg-amber-500/5 shadow-[0_0_24px_rgba(245,158,11,0.15)]"
+                    : isWinner
+                    ? "border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_24px_rgba(16,185,129,0.15)]"
+                    : isSelected && submitting
+                    ? "border-emerald-500/30 bg-emerald-500/5"
+                    : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.05]"
+                }`}
+              >
+                {/* Progress bar fill bg */}
+                {voted && !isPredictionOpen && pct > 0 && (
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    style={{
-                      position: "absolute", top: 0, left: 0, bottom: 0,
-                      background: isWinner ? "#ecfdf5" : "#f9fafb",
-                      borderRadius: 20, zIndex: 0,
-                    }}
+                    transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                    className={`absolute top-0 left-0 bottom-0 rounded-[24px] opacity-[0.06] ${
+                      isResolvedWinner ? "bg-amber-400" : isWinner ? "bg-emerald-400" : "bg-white"
+                    }`}
                   />
                 )}
 
-                <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={48} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontWeight: 700, color: "#111827", fontSize: 15 }}>
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="relative flex-shrink-0">
+                    <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={50} />
+                    {isWinner && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.6)]">
+                        <CheckCircle2 size={12} className="text-black" />
+                      </div>
+                    )}
+                    {isResolvedWinner && (
+                      <div className="absolute -top-1 -right-1 text-base">🏆</div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-black text-white text-base tracking-tight truncate">
                         {m.profiles?.username}
                       </span>
-                      {isMe && <span style={{ fontSize: 11, color: "#6b7280" }}>(Tú)</span>}
+                      {isMe && (
+                        <span className="text-[9px] font-black bg-white/10 text-white/40 px-2 py-0.5 rounded-full uppercase tracking-widest flex-shrink-0">
+                          TÚ
+                        </span>
+                      )}
                     </div>
+
                     {voted && !isPredictionOpen && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                        <div className="progress-bar" style={{ flex: 1, height: 6 }}>
-                          <motion.div className="progress-fill" style={{ background: isResolvedWinner ? "#f59e0b" : undefined }}
-                            initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                            className={`h-full rounded-full ${
+                              isResolvedWinner ? "bg-amber-400" : isWinner ? "bg-emerald-400" : "bg-white/30"
+                            }`}
                           />
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isResolvedWinner ? "#f59e0b" : (isWinner ? "#10b981" : "#6b7280"), minWidth: 36 }}>
+                        <span className={`text-xs font-black min-w-[36px] text-right ${
+                          isResolvedWinner ? "text-amber-400" : isWinner ? "text-emerald-400" : "text-white/30"
+                        }`}>
                           {pct}%
                         </span>
                       </div>
                     )}
+
                     {voted && isPredictionOpen && (
-                      <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>Resultados ocultos...</p>
+                      <p className="text-white/25 text-xs font-bold flex items-center gap-1.5">
+                        <Lock size={10} /> Resultados ocultos
+                      </p>
                     )}
                   </div>
-                  {voted && isWinner && <CheckCircle2 size={22} color="#10b981" style={{ flexShrink: 0 }} />}
-                  {isResolvedWinner && <div style={{ fontSize: 20 }}>🏆</div>}
-                  {submitting && isSelected && <Loader2 size={20} className="animate-spin" color="#10b981" style={{ flexShrink: 0 }} />}
-                  
-                  {/* Botón de Resolver (Solo Admins) */}
+
+                  {/* Admin resolve button */}
                   {isAdmin && isPredictionOpen && (
-                    <button onClick={(e) => { e.stopPropagation(); resolvePrediction(m.profile_id); }}
-                      className="btn-secondary" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 12, borderColor: "#f59e0b", color: "#b45309", zIndex: 10, position: "relative" }}>
-                      Resolver Aquí
+                    <button
+                      onClick={(e) => { e.stopPropagation(); resolvePrediction(m.profile_id); }}
+                      className="flex-shrink-0 px-3 py-2 rounded-[12px] bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-wider hover:bg-amber-500/15 transition-all"
+                    >
+                      Resolver
                     </button>
+                  )}
+
+                  {submitting && isSelected && (
+                    <Loader2 size={20} className="animate-spin text-emerald-500 flex-shrink-0" />
                   )}
                 </div>
               </motion.div>
@@ -284,79 +335,111 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         </div>
 
         {/* Comments section */}
-        {(voted || showComments) && (
-          <div style={{ marginTop: 24 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-              Comentarios ({comments.length})
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-              {comments.map((c) => (
-                <div key={c.id} style={{
-                  background: "white", borderRadius: 14, padding: "10px 14px",
-                  border: "1px solid #f3f4f6", display: "flex", gap: 10,
-                }}>
-                  <Avatar src={c.profiles?.avatar_url} name={c.profiles?.username} size={32} />
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>{c.profiles?.username} </span>
-                    <span style={{ fontSize: 13, color: "#374151" }}>{c.content}</span>
-                  </div>
-                </div>
-              ))}
-              {comments.length === 0 && (
-                <p style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", padding: "16px 0" }}>
-                  Sé el primero en comentar
+        <AnimatePresence>
+          {(voted || showComments) && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex flex-col gap-4"
+            >
+              <div className="flex items-center gap-3 px-1">
+                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.25em]">
+                  Comentarios
                 </p>
-              )}
-              <div ref={commentsRef} />
-            </div>
-            <form onSubmit={sendComment} style={{ display: "flex", gap: 8 }}>
-              <input className="input" placeholder="Escribe un comentario..." value={newComment}
-                onChange={(e) => setNewComment(e.target.value)} maxLength={200} style={{ flex: 1 }} />
-              <button type="submit" style={{
-                background: "#10b981", border: "none", borderRadius: 12, width: 46, height: 46,
-                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0,
-              }}>
-                <Send size={18} color="white" />
-              </button>
-            </form>
-          </div>
+                <div className="flex-1 h-px bg-white/[0.06]" />
+                <span className="text-[10px] font-black text-white/20">{comments.length}</span>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {comments.map((c) => (
+                  <div key={c.id} className="flex gap-3 items-start">
+                    <Avatar src={c.profiles?.avatar_url} name={c.profiles?.username} size={34} />
+                    <div className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-[18px] px-4 py-3">
+                      <span className="text-xs font-black text-emerald-500/80">{c.profiles?.username} </span>
+                      <span className="text-sm text-white/70 leading-snug">{c.content}</span>
+                    </div>
+                  </div>
+                ))}
+                {comments.length === 0 && (
+                  <p className="text-white/25 text-sm text-center py-4 font-medium">
+                    Sé el primero en comentar
+                  </p>
+                )}
+                <div ref={commentsRef} />
+              </div>
+
+              <form onSubmit={sendComment} className="flex gap-3 items-center">
+                <input
+                  className="input flex-1"
+                  placeholder="Escribe un comentario..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  maxLength={200}
+                />
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  className="w-12 h-[56px] flex-shrink-0 bg-emerald-500 rounded-[16px] flex items-center justify-center shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:bg-emerald-400 transition-colors"
+                >
+                  <Send size={18} className="text-black" />
+                </motion.button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pending voters (nudge) */}
+        {voted && (
+          <AnimatePresence>
+            {members.filter(m => !voters.includes(m.profile_id)).length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-4"
+              >
+                <div className="flex items-center gap-3 px-1">
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.25em]">
+                    Faltan por votar
+                  </p>
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {members.filter(m => !voters.includes(m.profile_id)).map(m => (
+                    <div
+                      key={m.profile_id}
+                      className="flex items-center justify-between bg-white/[0.03] border border-white/[0.06] rounded-[18px] px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={36} />
+                        <span className="text-sm font-bold text-white/70">{m.profiles?.username}</span>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => sendNudge(m.profile_id)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-[12px] bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-black uppercase tracking-wider hover:bg-white/[0.07] hover:text-white/80 transition-all"
+                      >
+                        <BellRing size={13} />
+                        Zumbar
+                      </motion.button>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
 
-        {/* Faltan por votar (Zumbidos) */}
-        {voted && (
-          <div style={{ marginTop: 24 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
-              Faltan por votar
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {members.filter(m => !voters.includes(m.profile_id)).map(m => (
-                <div key={m.profile_id} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: "white", padding: "10px 14px", borderRadius: 14,
-                  border: "1px solid #f3f4f6"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={32} />
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{m.profiles?.username}</span>
-                  </div>
-                  <button 
-                    onClick={() => sendNudge(m.profile_id)}
-                    className="btn-secondary" 
-                    style={{ padding: "6px 12px", borderRadius: 10, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <BellRing size={14} /> Zumbar
-                  </button>
-                </div>
-              ))}
-              {members.filter(m => !voters.includes(m.profile_id)).length === 0 && (
-                <p style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", padding: "16px 0" }}>
-                  ¡Todo el grupo ha votado!
-                </p>
-              )}
-            </div>
-          </div>
+        {voted && members.filter(m => !voters.includes(m.profile_id)).length === 0 && (
+          <p className="text-center text-emerald-500/50 text-xs font-black uppercase tracking-widest py-4">
+            ✓ Todo el grupo ha votado
+          </p>
         )}
       </div>
+
       <BottomNav />
     </div>
   );
