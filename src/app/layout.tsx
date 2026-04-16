@@ -23,17 +23,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <AuthProvider>
-          <main>
+          <div id="app-root">
             {children}
-          </main>
+          </div>
           <NudgeListener />
           <Toaster
             position="top-center"
             toastOptions={{
               style: {
-                background: "white",
-                border: "1px solid #e5e7eb",
-                color: "#111827",
+                background: "#0a0a0a",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#ffffff",
                 borderRadius: 14,
                 fontSize: 14,
                 fontWeight: 600,
