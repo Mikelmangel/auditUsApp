@@ -1,0 +1,52 @@
+Retrieving project…
+Deploying miguels-projects-7ebbbed8/auditus-app
+Uploading [--------------------] (0.0B/70B)
+Uploading [====================] (70.0B/70B)
+Inspect: https://vercel.com/miguels-projects-7ebbbed8/auditus-app/Amf973YtRdVbDQrbfAob6kSgekuY [2s]
+Production: https://auditus-d71s0tvn7-miguels-projects-7ebbbed8.vercel.app [2s]
+https://auditus-d71s0tvn7-miguels-projects-7ebbbed8.vercel.appBuilding...
+Building...
+Building: Running build in Washington, D.C., USA (East) – iad1
+Building: Build machine configuration: 2 cores, 8 GB
+Building: Retrieving list of deployment files...
+Building: Downloading 307 deployment files...
+Building: Restored build cache from previous deployment (CudBspfzGevSpbgWbVCXSUZjY9Zs)
+Building: Warning: "vercel" found in project dependencies and will be ignored.
+Building: Running "vercel build"
+Building: Vercel CLI 51.6.1
+Building: Installing dependencies...
+Building: up to date in 1s
+Building: 247 packages are looking for funding
+Building: run `npm fund` for details
+Building: Detected Next.js version: 16.2.4
+Building: Running "npm run build"
+Building: > auditus@0.1.0 build
+Building: > next build
+Building: Applying modifyConfig from Vercel
+Building: ▲ Next.js 16.2.4 (Turbopack)
+Building: - Environments: .env
+Building: Creating an optimized production build ...
+Building: Found 1 warning while optimizing generated CSS:
+Building: │   }
+Building: │ }
+Building: │ @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap');
+Building: ┆        ^-- @import rules must precede all rules aside from @charset and @layer statements
+Building: ┆
+Building: │ :root {
+Building: │   --emerald: #10b981;
+Building: ✓ Compiled successfully in 10.5s
+Building: Running TypeScript ...
+Building: Failed to type check.
+Building: ./src/app/groups/%5Bid%5D/page.tsx:80:78
+Building: Type error: Argument of type 'string | undefined' is not assignable to parameter of type 'QuestionMode | "prediction" | "battle_royale" | undefined'.
+Building: Type 'string' is not assignable to type 'QuestionMode | "prediction" | "battle_royale" | undefined'.
+Building: 78 | ...h,
+Building: 79 | ...
+Building: > 80 | ...ce.createPoll(group.id, rendered, user.id, q.poll_type);
+Building: |                                               ^
+Building: 81 | ...oll_history").insert([{ group_id: group.id, question_id: q.id }]);
+Building: 82 | ...1);
+Building: 83 | ...nzada!");
+Building: Next.js build worker exited with code: 1 and signal: null
+Building: Error: Command "npm run build" exited with 1
+Error: Command "npm run build" exited with 1

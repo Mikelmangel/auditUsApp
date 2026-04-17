@@ -36,7 +36,7 @@ export async function GET(request: Request) {
             });
             
             // Usamos el creador del grupo como autor de la encuesta del sistema
-            await pollService.createPoll(group.id, rendered, group.created_by, q.mode);
+            await pollService.createPoll(group.id, rendered, group.created_by, q.mode as import("@/lib/services").QuestionMode);
             await supabase.from("group_poll_history").insert([{ group_id: group.id, question_id: q.id }]);
             results.push({ groupId: group.id, status: 'created' });
           } else {

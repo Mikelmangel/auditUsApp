@@ -98,7 +98,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
         memberB:     shuffled[1]?.profiles?.username,
         memberCount: members.length,
       });
-      const poll = await pollService.createPoll(group.id, rendered, user.id, q.mode);
+      const poll = await pollService.createPoll(group.id, rendered, user.id, q.mode as import("@/lib/services").QuestionMode);
       await supabase.from("group_poll_history").insert([{ group_id: group.id, question_id: q.id }]);
       setPollCount(prev => prev + 1);
       toast.success("¡Encuesta lanzada!");
