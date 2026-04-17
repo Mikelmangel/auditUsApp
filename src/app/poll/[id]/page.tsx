@@ -159,6 +159,8 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/50 mb-0.5 truncate">
             {(poll.groups as any)?.name || "Encuesta"}
+            {(poll as any).questions?.category ? ` • ${(poll as any).questions.category}` : ""}
+            {(poll as any).questions?.mode ? ` • ${(poll as any).questions.mode}` : ""}
           </p>
           <div className="flex items-center gap-2">
             {poll.is_active && (
@@ -219,8 +221,206 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           )}
         </motion.div>
 
-        {/* Member Voting Cards */}
-        <div className="flex flex-col gap-3">
+        {/* Render mode specific inputs */}
+        {(() => {
+          const pollMode = (poll as any).questions?.mode || poll.poll_type;
+          
+          if (pollMode === 'mc') {
+            const options: string[] = (poll as any).questions?.options || [];
+            return (
+              <div className="flex flex-col gap-3">
+                {options.map((opt, i) => {
+                  const count = results[opt] || 0;
+                  const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                  const isWinner = voted && opt === leaderId && totalVotes > 0;
+                  const isSelected = selectedId === opt;
+                  const canVote = !voted && poll.is_active;
+
+                  return (
+                    <motion.div
+                      key={opt}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={canVote ? { scale: 1.015 } : {}}
+                      whileTap={canVote ? { scale: 0.98 } : {}}
+                      onClick={() => canVote && vote(opt)}
+                      className={`relative overflow-hidden rounded-[24px] p-5 border transition-all duration-300 ${
+                        canVote ? "cursor-pointer" : "cursor-default"
+                      } ${
+                        isWinner
+                          ? "border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_24px_rgba(16,185,129,0.15)]"
+                          : isSelected && submitting
+                          ? "border-emerald-500/30 bg-emerald-500/5"
+                          : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      {voted && pct > 0 && (
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                          className={`absolute top-0 left-0 bottom-0 rounded-[24px] opacity-[0.06] ${
+                            isWinner ? "bg-emerald-400" : "bg-white"
+                          }`}
+                        />
+                      )}
+                      
+                      <div className="relative z-10 flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                           <span className="font-black text-white text-[15px] leading-tight tracking-tight">{opt}</span>
+                        </div>
+                        {voted && (
+                          <div className={`text-xs font-black min-w-[36px] text-right flex-shrink-0 ${
+                            isWinner ? "text-emerald-400" : "text-white/30"
+                          }`}>
+                            {pct}%
+                          </div>
+                        )}
+                        {submitting && isSelected && (
+                          <Loader2 size={16} className="animate-spin text-emerald-500 flex-shrink-0" />
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          if (pollMode === 'scale') {
+            const average = totalVotes > 0 
+              ? (Object.entries(results).reduce((acc, [k,v]) => acc + (parseFloat(k) * v), 0) / totalVotes).toFixed(1)
+              : null;
+              
+            return (
+              <div className="card-elevated p-6 pb-8 border border-white/[0.08]">
+                 {!voted && poll.is_active ? (
+                   <div className="flex flex-col gap-6">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-white/40 text-xs font-bold">1</span>
+                        <span className="text-white font-black text-2xl tracking-tighter">{selectedId || "5"}</span>
+                        <span className="text-white/40 text-xs font-bold">10</span>
+                      </div>
+                      <input 
+                        type="range" min="1" max="10" step="1"
+                        value={selectedId || "5"}
+                        onChange={(e) => setSelectedId(e.target.value)}
+                        className="w-full accent-emerald-500 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <button 
+                        onClick={() => vote(selectedId || "5")} 
+                        disabled={submitting}
+                        className="btn-primary w-full mt-2"
+                      >
+                       {submitting ? <Loader2 size={16} className="animate-spin" /> : "Votar"} 
+                      </button>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col items-center justify-center gap-2 py-4">
+                      <p className="text-white/50 text-xs font-black uppercase tracking-widest">Media del grupo</p>
+                      <span className="text-6xl font-black text-emerald-400 tracking-tighter drop-shadow-[0_0_24px_rgba(16,185,129,0.3)]">{average || "?"}</span>
+                      <p className="text-white/30 text-[10px] mt-2 font-bold uppercase tracking-widest">basado en {totalVotes} votos</p>
+                   </div>
+                 )}
+              </div>
+            );
+          }
+
+          if (pollMode === 'free') {
+            return (
+              <div className="card-elevated p-6 border border-white/[0.08]">
+                {!voted && poll.is_active ? (
+                  <div className="flex flex-col gap-4">
+                    <textarea
+                      value={selectedId || ""}
+                      onChange={(e) => setSelectedId(e.target.value)}
+                      placeholder="Escribe tu respuesta sincera (anónima)..."
+                      className="w-full bg-white/[0.04] border border-white/[0.1] rounded-[16px] p-4 text-white placeholder-white/30 resize-none h-32 focus:outline-none focus:border-emerald-500/50"
+                    />
+                    <button 
+                      onClick={() => vote(selectedId || "")} 
+                      disabled={submitting || !selectedId?.trim()}
+                      className="btn-primary w-full"
+                    >
+                      {submitting ? <Loader2 size={16} className="animate-spin" /> : "Enviar respuesta"} 
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-white/50 text-[10px] font-black uppercase tracking-widest text-center mb-2">Respuestas anónimas enviadas</p>
+                    {Object.entries(results).map(([text, count], i) => (
+                      <div key={i} className="bg-white/[0.04] border border-white/[0.06] rounded-[16px] p-4 text-left">
+                         <p className="text-white/90 text-sm font-medium">"{text}"</p>
+                         {count > 1 && <span className="text-[10px] text-emerald-400 mt-2 block font-bold">x{count} coincidieron</span>}
+                      </div>
+                    ))}
+                    {Object.keys(results).length === 0 && <p className="text-white/30 text-center text-sm">Aún no hay respuestas publicadas</p>}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          if (pollMode === 'ranking') {
+            const orderedIds = (selectedId || members.map(m => m.profile_id).join(',')).split(',').filter(Boolean);
+            const orderedMembers = orderedIds.map(id => members.find(m => m.profile_id === id)).filter(Boolean) as GroupMember[];
+            
+            const moveUp = (idx: number) => {
+              if (idx === 0) return;
+              const newArr = [...orderedIds];
+              [newArr[idx-1], newArr[idx]] = [newArr[idx], newArr[idx-1]];
+              setSelectedId(newArr.join(','));
+            };
+            const moveDown = (idx: number) => {
+              if (idx === orderedIds.length - 1) return;
+              const newArr = [...orderedIds];
+              [newArr[idx+1], newArr[idx]] = [newArr[idx], newArr[idx+1]];
+              setSelectedId(newArr.join(','));
+            };
+
+            return (
+              <div className="flex flex-col gap-3">
+                {!voted && poll.is_active ? (
+                  <>
+                    <p className="text-white/50 text-[10px] font-black uppercase tracking-widest text-center mb-1 mt-2">Ordena usando las flechas</p>
+                    {orderedMembers.map((m, i) => (
+                       <div key={m.profile_id} className="flex items-center gap-4 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] rounded-[24px] p-4 transition-all">
+                         <div className="w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center font-black text-xs text-white/50 shrink-0">
+                           {i + 1}
+                         </div>
+                         <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={40} />
+                         <span className="font-bold text-[15px] text-white flex-1 truncate">{m.profiles?.username}</span>
+                         <div className="flex flex-col gap-1 shrink-0">
+                           <button onClick={(e) => { e.preventDefault(); moveUp(i); }} disabled={i===0} className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 bg-white/5 hover:bg-white/10 hover:text-white disabled:opacity-20 transition-all"><ChevronLeft className="rotate-90" size={18} /></button>
+                           <button onClick={(e) => { e.preventDefault(); moveDown(i); }} disabled={i===orderedMembers.length-1} className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 bg-white/5 hover:bg-white/10 hover:text-white disabled:opacity-20 transition-all"><ChevronLeft className="-rotate-90" size={18} /></button>
+                         </div>
+                       </div>
+                    ))}
+                    <button 
+                      onClick={() => vote(orderedIds.join(','))} 
+                      disabled={submitting}
+                      className="btn-primary w-full mt-4"
+                    >
+                      {submitting ? <Loader2 size={16} className="animate-spin" /> : "Confirmar ranking"} 
+                    </button>
+                  </>
+                ) : (
+                  <div className="card-elevated p-6 text-center border-emerald-500/30 bg-emerald-500/5 mt-2">
+                     <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                       <CheckCircle2 size={32} className="text-emerald-400" />
+                     </div>
+                     <h3 className="text-emerald-400 font-black text-lg mb-2 capitalize italic tracking-tight">Ranking Registrado</h3>
+                     <p className="text-white/60 text-sm">El grupo está ordenado en la caja fuerte.</p>
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Fallback Default: Members list (poll, vs)
+          return (
+            <div className="flex flex-col gap-3">
           {members.map((m, i) => {
             const count = results[m.profile_id] || 0;
             const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
@@ -333,6 +533,8 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
             );
           })}
         </div>
+        );
+        })()}
 
         {/* Comments section */}
         <AnimatePresence>

@@ -44,12 +44,19 @@ export type GroupMember = {
   profiles: Profile;
 };
 
+export type QuestionCategory = 
+  | 'humor' | 'habilidades' | 'futuro' | 'atrevidas' 
+  | 'hipoteticas' | 'vinculos' | 'eventos' | 'ia_custom' | 'general';
+
+export type QuestionMode = 'vs' | 'poll' | 'mc' | 'scale' | 'free' | 'ranking' | 'pool' | 'boolean' | 'ranked';
+
 export type Poll = {
   id: string;
   group_id: string;
   question: string;
   rendered_question?: string;
-  poll_type: 'pool' | 'vs' | 'boolean' | 'ranked' | 'prediction' | 'battle_royale';
+  poll_type: QuestionMode | 'prediction' | 'battle_royale';
+  question_mode?: string;
   is_active: boolean;
   expires_at?: string;
   created_at: string;
@@ -61,9 +68,14 @@ export type Poll = {
 export type Question = {
   id: string;
   text: string;
-  poll_type: 'pool' | 'vs' | 'boolean' | 'ranked';
-  category: string;
+  mode: QuestionMode;
+  poll_type?: string; // Legacy
+  category: QuestionCategory;
+  options?: string[];
+  is_anonymous: boolean;
   min_members: number;
+  max_members?: number;
+  tags?: string[];
 };
 
 export type Nudge = {
@@ -320,10 +332,10 @@ export const pollService = {
     return data;
   },
 
-  async getPoll(pollId: string): Promise<Poll | null> {
+  async getPoll(pollId: string): Promise<Poll & { questions?: { category?: string; mode?: string } } | null> {
     const { data, error } = await supabase
       .from('polls')
-      .select('*, groups(id, name)')
+      .select('*, groups(id, name), questions(category, mode)')
       .eq('id', pollId)
       .single();
     if (error) return null;
@@ -542,7 +554,12 @@ export const summaryService = {
 // ─────────────────────────────────────────────
 
 export const questionService = {
-  async getRandomQuestion(groupId: string, memberCount: number): Promise<Question | null> {
+  async getRandomQuestion(groupId: string, memberCount: number, categoryFilter?: string, modeFilter?: string): Promise<Question | null> {
+    // Fallback: ranking requires 4 members, fallback to poll
+    if (modeFilter === 'ranking' && memberCount < 4) {
+      modeFilter = 'poll';
+    }
+
     // Get already used questions for this group
     const { data: usedIds } = await supabase
       .from('group_poll_history')
@@ -556,6 +573,13 @@ export const questionService = {
       .select('*')
       .eq('is_active', true)
       .lte('min_members', memberCount);
+
+    if (categoryFilter) {
+      query = query.eq('category', categoryFilter);
+    }
+    if (modeFilter) {
+      query = query.eq('mode', modeFilter);
+    }
 
     if (excludeIds.length > 0) {
       query = query.not('id', 'in', `(${excludeIds.join(',')})`);

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AuditUs — Sistema de preguntas</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f4f0; color: #1a1a1a; padding: 20px; }
+  h1 { font-size: 16px; font-weight: 500; margin-bottom: 20px; color: #444; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { font-size: 12px; font-weight: 500; padding: 5px 14px; border-radius: 20px; border: 1px solid #ccc; background: transparent; color: #666; cursor: pointer; transition: all .15s; }
+  .tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* MODE CARDS */
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .mode-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 14px; cursor: pointer; transition: border-color .15s; }
+  .mode-card:hover { border-color: #999; }
+  .mode-card.selected { border: 2px solid #1a1a1a; }
+  .mode-icon { font-size: 22px; margin-bottom: 6px; }
+  .mode-name { font-size: 13px; font-weight: 600; color: #1a1a1a; margin: 0 0 3px; }
+  .mode-tagline { font-size: 11px; color: #666; margin: 0 0 6px; line-height: 1.4; }
+  .mode-example { font-size: 11px; color: #888; font-style: italic; margin: 0; line-height: 1.4; border-left: 2px solid #e0e0e0; padding-left: 8px; }
+
+  /* PREVIEW */
+  .preview-box { background: #ebe9e3; border-radius: 14px; padding: 16px; }
+  .preview-label { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 12px; }
+  .mock-phone { background: #fff; border: 1px solid #e0e0e0; border-radius: 16px; padding: 16px; max-width: 300px; margin: 0 auto; }
+  .mock-cat-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-bottom: 8px; }
+  .mock-q { font-size: 13px; font-weight: 600; color: #1a1a1a; margin: 0 0 14px; line-height: 1.5; }
+  .mock-options { display: flex; flex-direction: column; gap: 7px; }
+  .mock-opt { background: #f5f4f0; border: 1px solid #e0e0e0; border-radius: 10px; padding: 9px 12px; font-size: 12px; color: #1a1a1a; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 8px; }
+  .mock-opt:hover { border-color: #999; }
+  .mock-opt.voted { background: #EEEDFE; border-color: #AFA9EC; color: #3C3489; }
+  .mock-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .mock-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+  .mock-vs-opt { background: #f5f4f0; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 600; color: #1a1a1a; cursor: pointer; transition: all .15s; }
+  .mock-vs-opt:hover { border-color: #999; }
+  .mock-vs-opt.voted-a { background: #E1F5EE; border-color: #5DCAA5; color: #085041; }
+  .mock-vs-opt.voted-b { background: #FAECE7; border-color: #F0997B; color: #4A1B0C; }
+  .mock-vs-mid { font-size: 11px; font-weight: 600; color: #888; text-align: center; }
+  .mock-slider { width: 100%; margin: 10px 0; accent-color: #7F77DD; }
+  .mock-slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: #888; }
+  .mock-textarea { width: 100%; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px; font-size: 12px; color: #1a1a1a; background: #f5f4f0; resize: none; font-family: inherit; }
+  .mock-rank-item { display: flex; align-items: center; gap: 8px; background: #f5f4f0; border: 1px solid #e0e0e0; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #1a1a1a; margin-bottom: 6px; }
+  .rank-num { width: 20px; height: 20px; border-radius: 50%; background: #e0e0e0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+  .drag-icon { font-size: 12px; color: #bbb; margin-left: auto; }
+  .hint { font-size: 11px; color: #888; margin: 10px 0 0; text-align: center; }
+
+  /* CATEGORIES */
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .cat-card { border-radius: 14px; padding: 12px; border: 1px solid transparent; }
+  .cat-name { font-size: 12px; font-weight: 600; margin: 4px 0 3px; }
+  .cat-desc { font-size: 11px; line-height: 1.4; margin: 0 0 6px; }
+  .cat-examples { font-size: 10px; line-height: 1.5; margin: 0; }
+  .cat-modes { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .cat-mode-tag { font-size: 9px; padding: 1px 6px; border-radius: 20px; font-weight: 600; }
+
+  /* MATRIX */
+  .matrix-wrap { overflow-x: auto; }
+  .matrix { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 400px; }
+  .matrix th { padding: 8px; text-align: center; font-weight: 600; font-size: 10px; color: #666; border-bottom: 1px solid #e0e0e0; white-space: nowrap; }
+  .matrix th:first-child { text-align: left; }
+  .matrix td { padding: 8px; border-bottom: 1px solid #e0e0e0; text-align: center; color: #ccc; }
+  .matrix td:first-child { text-align: left; font-weight: 600; color: #1a1a1a; }
+  .matrix tr:last-child td { border-bottom: none; }
+  .dot-yes { color: #1D9E75; }
+  .dot-no  { color: #ddd; }
+  .dot-part { color: #BA7517; }
+
+  .rules { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .rule { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 10px 14px; }
+  .rule-title { font-size: 12px; font-weight: 600; color: #1a1a1a; margin: 0 0 3px; }
+  .rule-desc { font-size: 11px; color: #666; margin: 0; line-height: 1.5; }
+
+  .divider { height: 1px; background: #e0e0e0; margin: 14px 0; }
+  .section-label { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 10px; }
+  .legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11px; color: #666; }
+</style>
+</head>
+<body>
+<h1>AuditUs — Sistema de preguntas y categorías</h1>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('modos', this)">Modos de pregunta</button>
+  <button class="tab" onclick="show('categorias', this)">Categorías</button>
+  <button class="tab" onclick="show('matriz', this)">Qué combina con qué</button>
+</div>
+
+<!-- MODOS -->
+<div class="panel active" id="modos">
+  <p class="section-label">Selecciona un modo para ver la vista previa</p>
+  <div class="mode-grid">
+    <div class="mode-card selected" id="card-vs" onclick="selectMode('vs')">
+      <div class="mode-icon">⚔️</div>
+      <p class="mode-name">VS (1 vs 1)</p>
+      <p class="mode-tagline">El grupo vota entre dos personas</p>
+      <p class="mode-example">"¿Quién es más probable que llegue tarde a su propia boda?"</p>
+    </div>
+    <div class="mode-card" id="card-poll" onclick="selectMode('poll')">
+      <div class="mode-icon">🗳️</div>
+      <p class="mode-name">Poll (todos)</p>
+      <p class="mode-tagline">Vota a cualquier persona del grupo</p>
+      <p class="mode-example">"¿Quién cocina mejor de todos?"</p>
+    </div>
+    <div class="mode-card" id="card-mc" onclick="selectMode('mc')">
+      <div class="mode-icon">🔢</div>
+      <p class="mode-name">Multiple choice</p>
+      <p class="mode-tagline">Respuestas fijas, no personas</p>
+      <p class="mode-example">"Si fuerais a una isla desierta, ¿qué llevaríais?"</p>
+    </div>
+    <div class="mode-card" id="card-scale" onclick="selectMode('scale')">
+      <div class="mode-icon">🎚️</div>
+      <p class="mode-name">Escala (1-10)</p>
+      <p class="mode-tagline">Puntúa algo o a alguien</p>
+      <p class="mode-example">"Del 1 al 10, ¿qué tan buen amigo es Carlos?"</p>
+    </div>
+    <div class="mode-card" id="card-free" onclick="selectMode('free')">
+      <div class="mode-icon">✍️</div>
+      <p class="mode-name">Respuesta libre</p>
+      <p class="mode-tagline">Texto corto anónimo + fase de adivinanza</p>
+      <p class="mode-example">"¿Qué es lo peor que ha hecho alguien este año?"</p>
+    </div>
+    <div class="mode-card" id="card-rank" onclick="selectMode('rank')">
+      <div class="mode-icon">🏅</div>
+      <p class="mode-name">Ranking</p>
+      <p class="mode-tagline">Ordena a todos los miembros</p>
+      <p class="mode-example">"Ordena al grupo de más a menos organizado"</p>
+    </div>
+  </div>
+
+  <div class="preview-box">
+    <p class="preview-label">Vista previa interactiva</p>
+    <div id="preview-content"></div>
+    <p class="hint" id="preview-hint"></p>
+  </div>
+</div>
+
+<!-- CATEGORÍAS -->
+<div class="panel" id="categorias">
+  <p class="section-label">8 categorías de contenido</p>
+  <div class="cat-grid">
+    <div class="cat-card" style="background:#EEEDFE;border-color:#AFA9EC">
+      <div style="font-size:20px">😂</div>
+      <p class="cat-name" style="color:#3C3489">Humor</p>
+      <p class="cat-desc" style="color:#534AB7">Preguntas ligeras y absurdas para reír sin tensión</p>
+      <p class="cat-examples" style="color:#7F77DD">¿Quién se comería algo caducado? ¿Quién inventaría la excusa más ridícula?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#CECBF6;color:#26215C">VS</span>
+        <span class="cat-mode-tag" style="background:#CECBF6;color:#26215C">Poll</span>
+        <span class="cat-mode-tag" style="background:#CECBF6;color:#26215C">MC</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#E1F5EE;border-color:#5DCAA5">
+      <div style="font-size:20px">💪</div>
+      <p class="cat-name" style="color:#085041">Habilidades</p>
+      <p class="cat-desc" style="color:#0F6E56">Quién es mejor en algo concreto del grupo</p>
+      <p class="cat-examples" style="color:#1D9E75">¿Quién cocina mejor? ¿Quién sobreviviría solo más tiempo?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#9FE1CB;color:#04342C">VS</span>
+        <span class="cat-mode-tag" style="background:#9FE1CB;color:#04342C">Ranking</span>
+        <span class="cat-mode-tag" style="background:#9FE1CB;color:#04342C">Escala</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#FAEEDA;border-color:#EF9F27">
+      <div style="font-size:20px">🔮</div>
+      <p class="cat-name" style="color:#633806">Futuro</p>
+      <p class="cat-desc" style="color:#854F0B">Predicciones sobre el grupo a largo plazo</p>
+      <p class="cat-examples" style="color:#BA7517">¿Quién se casará primero? ¿Quién montará un negocio?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#FAC775;color:#412402">Poll</span>
+        <span class="cat-mode-tag" style="background:#FAC775;color:#412402">VS</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#FAECE7;border-color:#F0997B">
+      <div style="font-size:20px">🌶️</div>
+      <p class="cat-name" style="color:#4A1B0C">Atrevidas</p>
+      <p class="cat-desc" style="color:#712B13">Solo en modo anónimo. Verdades incómodas.</p>
+      <p class="cat-examples" style="color:#993C1D">¿A quién llamarías si necesitas que te saquen de un lío?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#F5C4B3;color:#4A1B0C">🔒 Anónimo</span>
+        <span class="cat-mode-tag" style="background:#F5C4B3;color:#4A1B0C">VS</span>
+        <span class="cat-mode-tag" style="background:#F5C4B3;color:#4A1B0C">Libre</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#E6F1FB;border-color:#85B7EB">
+      <div style="font-size:20px">🧠</div>
+      <p class="cat-name" style="color:#042C53">Hipotéticas</p>
+      <p class="cat-desc" style="color:#185FA5">Situaciones imposibles o extremas</p>
+      <p class="cat-examples" style="color:#378ADD">¿Quién sobreviviría un apocalipsis zombie? Si fuerais superhéroes...</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#B5D4F4;color:#042C53">MC</span>
+        <span class="cat-mode-tag" style="background:#B5D4F4;color:#042C53">VS</span>
+        <span class="cat-mode-tag" style="background:#B5D4F4;color:#042C53">Libre</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#EAF3DE;border-color:#97C459">
+      <div style="font-size:20px">💛</div>
+      <p class="cat-name" style="color:#173404">Vínculos</p>
+      <p class="cat-desc" style="color:#3B6D11">Refuerza la conexión emocional del grupo</p>
+      <p class="cat-examples" style="color:#639922">¿A quién llamarías a las 3am? ¿Quién te ha sorprendido más?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#C0DD97;color:#173404">Poll</span>
+        <span class="cat-mode-tag" style="background:#C0DD97;color:#173404">Escala</span>
+        <span class="cat-mode-tag" style="background:#C0DD97;color:#173404">Libre</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#FBEAF0;border-color:#ED93B1">
+      <div style="font-size:20px">🎉</div>
+      <p class="cat-name" style="color:#4B1528">Eventos</p>
+      <p class="cat-desc" style="color:#72243E">Temáticas por contexto: viaje, cumple, año nuevo</p>
+      <p class="cat-examples" style="color:#993556">¿Quién organizaría el peor viaje? ¿Quién se duerme antes de las 12?</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#F4C0D1;color:#4B1528">VS</span>
+        <span class="cat-mode-tag" style="background:#F4C0D1;color:#4B1528">Poll</span>
+        <span class="cat-mode-tag" style="background:#F4C0D1;color:#4B1528">Ranking</span>
+      </div>
+    </div>
+    <div class="cat-card" style="background:#F1EFE8;border-color:#B4B2A9">
+      <div style="font-size:20px">🤖</div>
+      <p class="cat-name" style="color:#2C2C2A">IA personalizada</p>
+      <p class="cat-desc" style="color:#5F5E5A">Generadas con los nombres y contexto del grupo</p>
+      <p class="cat-examples" style="color:#888780">Únicas para vuestro grupo. Imposibles en un banco estático.</p>
+      <div class="cat-modes">
+        <span class="cat-mode-tag" style="background:#D3D1C7;color:#2C2C2A">Todos los modos</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MATRIZ -->
+<div class="panel" id="matriz">
+  <p class="section-label">Compatibilidad modo × categoría</p>
+  <div class="matrix-wrap">
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>⚔️ VS</th>
+          <th>🗳️ Poll</th>
+          <th>🔢 MC</th>
+          <th>🎚️ Escala</th>
+          <th>✍️ Libre</th>
+          <th>🏅 Ranking</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>😂 Humor</td>        <td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-part">●</span></td><td><span class="dot-no">●</span></td></tr>
+        <tr><td>💪 Habilidades</td>  <td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td></tr>
+        <tr><td>🔮 Futuro</td>       <td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-part">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td></tr>
+        <tr><td>🌶️ Atrevidas</td>   <td><span class="dot-yes">●</span></td><td><span class="dot-part">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td></tr>
+        <tr><td>🧠 Hipotéticas</td>  <td><span class="dot-part">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td></tr>
+        <tr><td>💛 Vínculos</td>     <td><span class="dot-part">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-no">●</span></td></tr>
+        <tr><td>🎉 Eventos</td>      <td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-part">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-no">●</span></td><td><span class="dot-yes">●</span></td></tr>
+        <tr><td>🤖 IA custom</td>    <td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td><td><span class="dot-yes">●</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><span class="dot-yes">●</span> Encaja perfecto</span>
+    <span><span class="dot-part">●</span> Según pregunta</span>
+    <span><span class="dot-no">●</span> No natural</span>
+  </div>
+
+  <div class="divider"></div>
+  <p class="section-label">Reglas de diseño del sistema</p>
+  <div class="rules">
+    <div class="rule">
+      <p class="rule-title">Cada pregunta tiene modo fijo</p>
+      <p class="rule-desc">El modo lo decide quien crea la pregunta (o la IA). El usuario solo responde. No puede cambiarlo.</p>
+    </div>
+    <div class="rule">
+      <p class="rule-title">Atrevidas fuerzan modo anónimo</p>
+      <p class="rule-desc">La categoría "Atrevidas" activa automáticamente el anonimato. No se puede desactivar para esa categoría.</p>
+    </div>
+    <div class="rule">
+      <p class="rule-title">Ranking mínimo 4 personas</p>
+      <p class="rule-desc">Solo disponible si el grupo tiene 4+ miembros. En grupos pequeños se convierte automáticamente en Poll.</p>
+    </div>
+    <div class="rule">
+      <p class="rule-title">Respuesta libre tiene fase de adivinanza</p>
+      <p class="rule-desc">Primero todos escriben anónimamente. Luego el grupo vota "¿quién escribió esto?". Un mini-juego dentro del juego.</p>
+    </div>
+    <div class="rule">
+      <p class="rule-title">La IA elige el modo más adecuado</p>
+      <p class="rule-desc">Cuando la IA genera una pregunta, también decide el modo óptimo basándose en la categoría y el número de miembros del grupo.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const previews = {
+  vs: {
+    tag: '😂 Humor', tagStyle: 'background:#EEEDFE;color:#3C3489',
+    q: '¿Quién es más probable que llegue tarde a su propia boda?',
+    render: () => `<div class="mock-vs">
+      <div class="mock-vs-opt" id="opt-a" onclick="voteVs('a')">
+        <div style="font-size:22px;margin-bottom:4px">🟢</div>
+        <div style="font-size:13px;font-weight:600">Ana</div>
+      </div>
+      <div class="mock-vs-mid">VS</div>
+      <div class="mock-vs-opt" id="opt-b" onclick="voteVs('b')">
+        <div style="font-size:22px;margin-bottom:4px">🔵</div>
+        <div style="font-size:13px;font-weight:600">Carlos</div>
+      </div>
+    </div>`,
+    hint: 'Toca para votar · Se revela cuando todos han votado'
+  },
+  poll: {
+    tag: '🔮 Futuro', tagStyle: 'background:#FAEEDA;color:#633806',
+    q: '¿Quién del grupo se casará primero?',
+    render: () => ['Ana','Carlos','María','Javi'].map((n,i) => `
+      <div class="mock-opt" id="poll-${i}" onclick="votePoll(${i})">
+        <div class="mock-avatar" style="background:${['#EEEDFE','#E1F5EE','#FAEEDA','#E6F1FB'][i]};color:${['#3C3489','#085041','#633806','#042C53'][i]}">${n[0]}</div>
+        ${n}
+      </div>`).join(''),
+    hint: 'Elige uno · Poll revela el ganador absoluto del grupo'
+  },
+  mc: {
+    tag: '🧠 Hipotéticas', tagStyle: 'background:#E6F1FB;color:#042C53',
+    q: 'Si el grupo fuera a una isla desierta, ¿qué llevarías?',
+    render: () => ['🔥 Mechero y cuerda','📱 Móvil con batería infinita','🍕 Comida para un año','📚 Libros de supervivencia'].map((o,i) => `
+      <div class="mock-opt" id="mc-${i}" onclick="voteMc(${i})">${o}</div>`).join(''),
+    hint: 'Respuestas fijas · Se comparan las elecciones de cada miembro'
+  },
+  scale: {
+    tag: '💛 Vínculos', tagStyle: 'background:#EAF3DE;color:#173404',
+    q: 'Del 1 al 10, ¿qué tan buen amigo es Carlos en los momentos difíciles?',
+    render: () => `<div style="text-align:center;padding:8px 0">
+      <div style="font-size:36px;font-weight:600;color:#1a1a1a;margin-bottom:12px" id="scale-val">7</div>
+      <input type="range" min="1" max="10" value="7" step="1" class="mock-slider" oninput="document.getElementById('scale-val').textContent=this.value">
+      <div class="mock-slider-labels"><span>1 — Regulero</span><span>10 — Top</span></div>
+    </div>`,
+    hint: 'Mueve el slider · La media del grupo se revela al final'
+  },
+  free: {
+    tag: '🌶️ Atrevidas', tagStyle: 'background:#FAECE7;color:#4A1B0C',
+    q: '¿Cuál es el secreto más inofensivo que sabes de alguien del grupo?',
+    render: () => `<textarea class="mock-textarea" rows="3" placeholder="Escribe tu respuesta... (anónima)" oninput="document.getElementById('free-count').textContent=this.value.length+' / 120'"></textarea>
+      <div style="font-size:10px;color:#888;margin-top:4px;text-align:right" id="free-count">0 / 120</div>`,
+    hint: 'Anónimo · Luego el grupo vota "¿quién escribió esto?"'
+  },
+  rank: {
+    tag: '💪 Habilidades', tagStyle: 'background:#E1F5EE;color:#085041',
+    q: 'Ordena al grupo de más a menos organizado en la vida real',
+    render: () => `<div id="rank-list">${['Ana','Carlos','María','Javi'].map((n,i) => `
+      <div class="mock-rank-item">
+        <div class="rank-num">${i+1}</div>
+        <div class="mock-avatar" style="background:${['#EEEDFE','#E1F5EE','#FAEEDA','#E6F1FB'][i]};color:${['#3C3489','#085041','#633806','#042C53'][i]}">${n[0]}</div>
+        ${n}
+        <span class="drag-icon">⠿</span>
+      </div>`).join('')}</div>`,
+    hint: 'Arrastra para reordenar · El ranking final combina todos los votos'
+  }
+};
+
+function selectMode(id) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-'+id).classList.add('selected');
+  const p = previews[id];
+  document.getElementById('preview-content').innerHTML = `
+    <div class="mock-phone">
+      <span class="mock-cat-tag" style="${p.tagStyle}">${p.tag}</span>
+      <p class="mock-q">${p.q}</p>
+      <div class="mock-options">${p.render()}</div>
+    </div>`;
+  document.getElementById('preview-hint').textContent = p.hint;
+}
+
+function voteVs(side) {
+  const a = document.getElementById('opt-a');
+  const b = document.getElementById('opt-b');
+  a.classList.toggle('voted-a', side==='a');
+  a.classList.toggle('voted-b', side==='b');
+  b.classList.toggle('voted-b', side==='b');
+  b.classList.toggle('voted-a', side==='a');
+}
+function votePoll(i) {
+  for(let j=0;j<4;j++) { const el = document.getElementById('poll-'+j); if(el) el.classList.remove('voted'); }
+  const el = document.getElementById('poll-'+i); if(el) el.classList.add('voted');
+}
+function voteMc(i) {
+  for(let j=0;j<4;j++) { const el = document.getElementById('mc-'+j); if(el) el.classList.remove('voted'); }
+  const el = document.getElementById('mc-'+i); if(el) el.classList.add('voted');
+}
+
+function show(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+selectMode('vs');
+</script>
+</body>
+</html>
