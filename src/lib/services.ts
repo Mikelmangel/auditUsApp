@@ -283,11 +283,16 @@ export const groupService = {
 // ─────────────────────────────────────────────
 
 export const pollService = {
-  async createPoll(groupId: string, question: string, userId: string, pollType: Poll['poll_type'] = 'pool') {
+  async createPoll(groupId: string, question: string, userId: string, pollType: Poll['poll_type'] = 'pool', questionId?: string) {
     // Check limit
-    const todayCount = await pollService.getTodaysPollCount(groupId);
-    if (todayCount >= 3) {
-      throw new Error('Límite de 3 preguntas diarias alcanzado para este grupo.');
+    const { count } = await supabase
+      .from('polls')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', groupId)
+      .eq('is_active', true);
+      
+    if (count && count >= 5) {
+      throw new Error("Límite de 5 encuestas activas alcanzado.");
     }
 
     const { data, error } = await supabase
@@ -297,13 +302,15 @@ export const pollService = {
         question,
         rendered_question: question,
         poll_type: pollType,
+        question_mode: pollType,
+        question_id: questionId,
         created_by: userId,
         is_active: true,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         resolution_status: pollType === 'prediction' ? 'open' : null
       }])
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
     return data as Poll;
   },
@@ -337,7 +344,7 @@ export const pollService = {
       .from('polls')
       .select('*, groups(id, name), questions(category, mode)')
       .eq('id', pollId)
-      .single();
+      .maybeSingle();
     if (error) return null;
     return data;
   },
@@ -370,13 +377,13 @@ export const pollService = {
     }
   },
 
-  async hasVoted(pollId: string, userId: string): Promise<boolean> {
+  async hasVoted(pollId: string, userId: string) {
     const { data } = await supabase
       .from('votes')
       .select('id')
       .eq('poll_id', pollId)
       .eq('voter_id', userId)
-      .single();
+      .maybeSingle();
     return !!data;
   },
 
