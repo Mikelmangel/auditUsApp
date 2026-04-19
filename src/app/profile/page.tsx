@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BottomNav, Avatar, Button, Card, SectionTitle, LoadingScreen } from "@/components/ui";
-import { Flame, Zap, Trophy, LogOut, ChevronRight, Camera, Shield, Heart, Star } from "lucide-react";
+import { Flame, Zap, Trophy, LogOut, ChevronRight, Camera, Shield, Heart, Star, Loader2 } from "lucide-react";
 import { profileService, type Profile, type Badge } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
