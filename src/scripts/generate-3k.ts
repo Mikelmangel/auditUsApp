@@ -13,28 +13,58 @@ if (!apiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.1-flash" });
 
 const BATCH_SIZE = 50; 
-const TOTAL_NEEDED = 3000;
-const CATEGORIES = ['humor', 'habilidades', 'futuro', 'atrevidas', 'hipoteticas', 'vinculos', 'eventos'];
+const CATEGORIES_DATA = {
+    humor: { emoji: '😂', modes: ['vs', 'poll', 'mc'], desc: 'Preguntas ligeras y absurdas para reír sin tensión' },
+    habilidades: { emoji: '💪', modes: ['vs', 'ranking', 'scale'], desc: 'Quién es mejor en algo concreto del grupo' },
+    futuro: { emoji: '🔮', modes: ['poll', 'vs'], desc: 'Predicciones sobre el grupo a largo plazo' },
+    atrevidas: { emoji: '🌶️', modes: ['vs', 'free'], desc: 'Solo en modo anónimo. Verdades incómodas.', is_anon: true },
+    hipoteticas: { emoji: '🧠', modes: ['mc', 'vs', 'free'], desc: 'Situaciones imposibles o extremas' },
+    vinculos: { emoji: '💛', modes: ['poll', 'scale', 'free'], desc: 'Refuerza la conexión emocional del grupo' },
+    eventos: { emoji: '🎉', modes: ['vs', 'poll', 'ranking'], desc: 'Temáticas por contexto: viaje, cumple, año nuevo' },
+    ia_custom: { emoji: '🤖', modes: ['vs', 'poll', 'mc', 'scale', 'free', 'ranking'], desc: 'Generadas con el contexto único del grupo' }
+};
 
 async function wait(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function generateBatch(category: string, batchSize: number): Promise<any[]> {
+interface Question {
+    text: string;
+    mode: string;
+    category: string;
+    options: string[] | null;
+    tags?: string[];
+}
+
+async function generateBatch(category: string, batchSize: number): Promise<Question[]> {
+    const cat = CATEGORIES_DATA[category as keyof typeof CATEGORIES_DATA];
     const prompt = `
-Eres el guionista principal de AuditUs, una app social donde grupos de amigos votan en minijuegos y responden dilemas.
-Genera EXACTAMENTE ${batchSize} preguntas totalmente únicas, creativas y diferentes para la categoría "${category}".
-Evita repetir temas. Sé original. 
+Eres el guionista principal de AuditUs, una app social premium de "Infinite Sophistication" (monocromo, elegante).
+Genera EXACTAMENTE ${batchSize} preguntas ÚNICAS y CREATIVAS para la categoría "${category}" (${cat.emoji}).
+Descripción de la categoría: ${cat.desc}
 
-Usa los placeholders: {member_A}, {member_B} o {group_name} DÓNDE aplique.
-Modos: 'vs', 'poll', 'mc', 'scale', 'free', 'ranking'. 
+REGLAS DE MODO ESTRICTAS PARA ESTA CATEGORÍA:
+- Solo usa estos modos: ${cat.modes.join(', ')}
 
-Devuelve SÓLO Y ESTRICTAMENTE un ARRAY JSON sin markdown.
-Ejemplo:
-[{"text": "¿Quién ganaría en un concurso de comer perritos calientes, {member_A} o {member_B}?", "mode": "vs", "category": "${category}", "options": null}]
+ESPECIFICACIONES POR MODO:
+- 'vs': Obligatorio usar {member_A} y {member_B}. Dilemas de elección entre dos personas.
+- 'poll': Pregunta abierta sobre "quién del grupo...". 
+- 'mc' (Multiple Choice): Genera EXACTAMENTE 4 opciones de texto divertidas. NO menciones nombres de personas en las opciones.
+- 'scale' (Escala): Preguntas puntuables del 1 al 10 (ej: ¿Qué tan X es {member_A}?). Añade etiquetas de escala en la pregunta si es necesario.
+- 'free' (Libre): Preguntas que inciten a contar un secreto, una opinión o una anécdota corta.
+- 'ranking': Preguntas que impliquen ordenar a TODO el grupo de más a menos algo.
+
+PLACEHOLDERS:
+- {member_A}, {member_B}, {group_name}.
+
+CALIDAD: Evita clichés. Sé ingenioso, algo atrevido pero elegante.
+Si es categoría 'atrevidas', sé picante pero nunca vulgar.
+
+Devuelve un ARRAY JSON:
+[{"text": "...", "mode": "...", "category": "${category}", "options": ["...", "...", "...", "..."] | null, "tags": ["${cat.emoji}", "..."]}]
 `;
 
     try {
@@ -52,18 +82,29 @@ Ejemplo:
 }
 
 async function main() {
-    console.log(`🚀 Iniciando generación masiva de ${TOTAL_NEEDED} preguntas AuditUs MVP...`);
-    const outputFile = path.join(process.cwd(), "supabase", "migrations", "20260417000003_massive_3000_seed.sql");
+    const CATEGORIES = Object.keys(CATEGORIES_DATA);
+    const TOTAL_QUESTIONS = parseInt(process.env.GEN_COUNT || "3000");
+    const PER_FILE = 300;
     
-    // Header for SQL
-    fs.writeFileSync(outputFile, `-- Seed generado automáticamente\nINSERT INTO public.questions (text, mode, category, options, is_anonymous, min_members) VALUES\n`);
-
+    console.log(`🚀 Iniciando generación de ${TOTAL_QUESTIONS} preguntas AuditUs.`);
+    
     let totalGenerated = 0;
-    let isFirst = true;
-    
-    while (totalGenerated < TOTAL_NEEDED) {
+    let fileIndex = 1;
+    let isFirstInFile = true;
+    let currentOutputFile = "";
+
+    const openNewFile = (index: number) => {
+        const filePath = path.join(process.cwd(), "supabase", "migrations", `seed_strict_batch${index}.sql`);
+        fs.writeFileSync(filePath, `-- BATCH ${index} - STRICT SPEC\nINSERT INTO public.questions (text, mode, category, options, is_anonymous, min_members, tags) VALUES\n`);
+        isFirstInFile = true;
+        return filePath;
+    };
+
+    currentOutputFile = openNewFile(fileIndex);
+
+    while (totalGenerated < TOTAL_QUESTIONS) {
         const category = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-        console.log(`⏳ Generando batch de ${BATCH_SIZE} para la categoría: ${category}... (${totalGenerated}/${TOTAL_NEEDED})`);
+        console.log(`⏳ [Archivo ${fileIndex}] Generando batch de ${BATCH_SIZE} para: ${category}... (${totalGenerated}/${TOTAL_QUESTIONS})`);
         
         const questionsChunk = await generateBatch(category, BATCH_SIZE);
         
@@ -72,30 +113,41 @@ async function main() {
             for (const q of questionsChunk) {
                 if (!q.text || !q.mode || !q.category) continue;
                 
+                const catData = CATEGORIES_DATA[q.category as keyof typeof CATEGORIES_DATA];
                 let textSafe = q.text.replace(/'/g, "''");
                 let optionsSafe = q.options && Array.isArray(q.options) 
                   ? `ARRAY['${q.options.map((o:any) => o.replace(/'/g, "''")).join("','")}']` 
                   : "NULL";
-                let isAnon = q.category === 'atrevidas' ? 'true' : 'false';
+                let isAnon = (catData as any)?.is_anon ? 'true' : 'false';
+                let minMemb = q.mode === 'ranking' ? 4 : 2;
+                let tagsSafe = q.tags && Array.isArray(q.tags)
+                  ? `ARRAY['${q.tags.map((t:any) => t.replace(/'/g, "''")).join("','")}']`
+                  : `ARRAY['${catData?.emoji || ''}']`;
                 
-                const prefix = isFirst ? "" : ",\n";
-                sqlChunk += `${prefix}('${textSafe}', '${q.mode}', '${q.category}', ${optionsSafe}, ${isAnon}, 2)`;
-                isFirst = false;
+                const prefix = isFirstInFile ? "" : ",\n";
+                sqlChunk += `${prefix}('${textSafe}', '${q.mode}', '${q.category}', ${optionsSafe}, ${isAnon}, ${minMemb}, ${tagsSafe})`;
+
+                isFirstInFile = false;
                 totalGenerated++;
+
+                // Check if we need to rotate file
+                if (totalGenerated % PER_FILE === 0 && totalGenerated < TOTAL_QUESTIONS) {
+                    fs.appendFileSync(currentOutputFile, sqlChunk + ";\n");
+                    sqlChunk = "";
+                    fileIndex++;
+                    currentOutputFile = openNewFile(fileIndex);
+                }
             }
             
-            fs.appendFileSync(outputFile, sqlChunk);
-            console.log(`✅ ¡Éxito! Van ${totalGenerated} agregadas al archivo SQL.`);
+            if (sqlChunk) fs.appendFileSync(currentOutputFile, sqlChunk);
+            console.log(`✅ ¡Éxito! Van ${totalGenerated} registradas.`);
         }
         
-        // Rate limiting cooldown (Gemini free tier compliance)
-        await wait(3000); 
+        await wait(2000); 
     }
     
-    // Closer
-    fs.appendFileSync(outputFile, ";\n");
-    console.log(`\n🎉 COMPLETADO. Tienes tus ${totalGenerated} preguntas en: ${outputFile}`);
-    console.log(`Ahora puedes abrir Supabase y ejecutar ese archivo allí.`);
+    fs.appendFileSync(currentOutputFile, ";\n");
+    console.log(`\n🎉 COMPLETADO. Tienes ${fileIndex} archivos en: supabase/migrations/seed_strict_batch*.sql`);
 }
 
 main();

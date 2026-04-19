@@ -16,26 +16,19 @@ async function run() {
     body: JSON.stringify({ email: 'admin@audit-us.app', password: 'admin123' })
   });
   const auth = await loginRes.json();
-  if(!auth.access_token) { console.error('Login failed', auth); return; }
+  if(!auth.access_token) return console.error('Login failed');
 
-  const url = `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/votes`;
-  const res = await fetch(url, {
-    method: 'POST',
+  const patchRes = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/polls?id=eq.5914a441-ad27-45d3-a2a6-729028c66028`, {
+    method: 'PATCH',
     headers: {
       'apikey': env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${auth.access_token}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     },
-    // We insert a vote as string '5' to a dummy or existing poll
-    body: JSON.stringify({ 
-      poll_id: "5914a441-ad27-45d3-a2a6-729028c66028", 
-      voter_id: auth.user.id, 
-      target_id: "Hola_prueba" 
-    })
+    body: JSON.stringify({ is_active: false })
   });
   
-  const text = await res.text();
-  console.log(res.status, text);
+  console.log(patchRes.status, await patchRes.text());
 }
 run();
