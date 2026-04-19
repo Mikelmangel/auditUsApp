@@ -3,6 +3,19 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "sonner";
 import { NudgeListener } from "@/components/NudgeListener";
+import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const viewport = {
   themeColor: "#10b981",
@@ -22,13 +35,13 @@ import { PageTransition } from "@/components/PageTransition";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body className="bg-black antialiased overscroll-none" suppressHydrationWarning>
-        {/* Living Background Mesh */}
-        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-900/15 blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-800/10 blur-[120px]" />
-          <div className="absolute top-[30%] right-[5%] w-[30%] h-[30%] rounded-full bg-emerald-900/5 blur-[80px]" />
+    <html lang="es" className={`${plusJakarta.variable} ${outfit.variable}`}>
+      <body className="bg-[var(--bg)] antialiased overscroll-none" suppressHydrationWarning>
+        {/* Living Background Aura Orbs (V3 style) */}
+        <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-40">
+          <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-indigo-500/10 blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-pink-500/10 blur-[120px]" />
+          <div className="absolute top-[30%] right-[5%] w-[40%] h-[40%] rounded-full bg-cyan-500/5 blur-[80px]" />
         </div>
 
         <AuthProvider>

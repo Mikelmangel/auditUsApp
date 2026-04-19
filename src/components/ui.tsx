@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { ChevronLeft, Home, Loader2, Search, Trophy, User } from "lucide-react";
+import { ChevronLeft, Home, Loader2, Search, Trophy, User, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
@@ -35,10 +35,11 @@ export function Avatar({
 export function BottomNav() {
   const pathname = usePathname();
   const items = [
-    { icon: Home, label: "Votación", path: "/" },
-    { icon: Search, label: "Paquetes", path: "/explore" },
-    { icon: Trophy, label: "Información", path: "/leaderboard" },
-    { icon: User, label: "Extras", path: "/profile" },
+    { id: 'home', label: 'Inicio', icon: Home, path: '/' },
+    { id: 'explore', label: 'Explorar', icon: Search, path: '/explore' },
+    { id: 'connect', label: 'Conectar', icon: Users, path: '/groups/new' },
+    { id: 'ranking', label: 'Ranking', icon: Trophy, path: '/leaderboard' },
+    { id: 'profile', label: 'Perfil', icon: User, path: '/profile' },
   ];
 
   return (

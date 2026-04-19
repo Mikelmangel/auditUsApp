@@ -51,6 +51,13 @@
 
   /* Animation */
   --ease-expo:      cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* LUCID AURA V3 TOKENS */
+  --aura-violet:    #8B5CF6;
+  --aura-pink:      #EC4899;
+  --aura-cyan:      #06B6D4;
+  --aura-indigo:    #6366F1;
+  --aura-bg:        #f8fafc;
 }
 
 /* ─── BASE ─── */
@@ -62,7 +69,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--text-body);
   -webkit-font-smoothing: antialiased;
@@ -405,3 +412,67 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 /* Hide scrollbars */
 ::-webkit-scrollbar { width: 0; display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
+/* ─── LUCID AURA V3 UTILITIES ─── */
+
+.glass-v3 {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+}
+
+.text-aura {
+  background: linear-gradient(135deg, var(--aura-violet) 0%, var(--aura-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.btn-aura {
+  background: linear-gradient(135deg, var(--aura-violet) 0%, var(--aura-pink) 100%);
+  color: white;
+  border-radius: var(--radius-full);
+  padding: 14px 24px;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+  transition: all 0.3s var(--ease-expo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-aura:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+}
+
+.aura-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Custom Outlined Bold Style */
+.text-outline-aura {
+  -webkit-text-stroke: 1px var(--aura-violet);
+  color: transparent;
+}
+
+.font-outfit {
+  font-family: var(--font-outfit), sans-serif;
+}
