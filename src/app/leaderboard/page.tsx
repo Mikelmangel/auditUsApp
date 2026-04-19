@@ -24,59 +24,55 @@ export default function LeaderboardPage() {
 
   // Podium order: 2nd (left), 1st (center), 3rd (right)
   const podiumOrder  = [top3[1], top3[0], top3[2]];
-  const podiumRanks  = [2, 1, 3];
-  const podiumHeights = ["h-20", "h-32", "h-16"];
+  const podiumHeights = ["h-20", "h-36", "h-16"];
   const podiumColors  = [
-    "bg-slate-500/60",
-    "bg-emerald-500   shadow-[0_0_24px_rgba(16,185,129,0.35)]",
-    "bg-amber-700/60",
+    "bg-[#14726e]/10 border-[#14726e]/20",
+    "bg-[#14726e] shadow-[0_12px_40px_rgba(20,114,110,0.3)]",
+    "bg-white border-black/5",
   ];
-  const podiumRingColors = [
-    "ring-slate-400/40",
-    "ring-emerald-500  shadow-[0_0_30px_rgba(16,185,129,0.4)]",
-    "ring-amber-600/40",
-  ];
-  const rankBgColors = [
-    "bg-slate-500 text-black",
-    "bg-emerald-500 text-black",
-    "bg-amber-700 text-white",
+  const podiumTextColors = [
+    "text-[#14726e]",
+    "text-white",
+    "text-gray-400",
   ];
 
   return (
-    <div className="min-h-svh bg-black relative overflow-x-hidden">
-      <div className="bg-mesh" />
-
-      {/* Header */}
-      <header
-        className="px-6 pb-6 relative z-10 flex items-end justify-between"
-        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 52px)` }}
-      >
+    <div className="min-h-svh bg-[#f3ede2] relative overflow-x-hidden">
+      {/* Header with Arc */}
+      <header className="arc-header px-6 pb-20 text-center relative overflow-hidden">
         <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+           initial={{ opacity: 0, scale: 0.9 }}
+           animate={{ opacity: 1, scale: 1 }}
+           className="relative z-10"
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-500/60 mb-1">
+          <div className="flex justify-center mb-4">
+             <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-[24px] flex items-center justify-center border border-white/20 shadow-xl">
+                <Trophy size={32} className="text-orange-400" />
+             </div>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">
             Elite de la Auditoría
           </p>
           <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
             Ranking
           </h1>
         </motion.div>
-        <div className="w-12 h-12 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.15)]">
-          <Trophy size={22} className="text-yellow-400" />
-        </div>
+        
+        {/* Floating circles decoration */}
+        <div className="absolute top-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-orange-500/10 blur-3xl" />
       </header>
 
-      <div className="px-6 pb-32 relative z-10 flex flex-col gap-8">
+      <div className="px-6 pb-32 relative z-10 flex flex-col gap-8 -mt-10">
 
         {/* Podium */}
         {top3.length >= 3 && (
           <section>
-            <div className="flex justify-center items-end gap-4 pt-4 pb-2">
+            <div className="flex justify-center items-end gap-3 pt-4">
               {podiumOrder.map((p, i) => {
                 if (!p) return null;
-                const rank    = podiumRanks[i];
+                const ranks = [2, 1, 3];
+                const rank = ranks[i];
                 const isFirst = rank === 1;
 
                 return (
@@ -93,18 +89,21 @@ export default function LeaderboardPage() {
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                          className="absolute -inset-3 border border-dashed border-emerald-500/25 rounded-full"
+                          className="absolute -inset-4 border border-dashed border-[#14726e]/30 rounded-full"
                         />
                       )}
                       <Avatar
                         src={p.avatar_url}
                         name={p.username}
-                        size={isFirst ? 76 : 58}
-                        className={cn("ring-2", podiumRingColors[i])}
+                        size={isFirst ? 84 : 64}
+                        className={cn(
+                          "ring-4 transition-all duration-500",
+                          isFirst ? "ring-white shadow-2xl" : "ring-white/50"
+                        )}
                       />
                       <div className={cn(
-                        "absolute -bottom-2 -right-1 w-7 h-7 rounded-full border-2 border-black flex items-center justify-center font-black text-xs",
-                        rankBgColors[i]
+                        "absolute -bottom-2 -right-1 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center font-black text-xs shadow-lg",
+                        isFirst ? "bg-[#f36b2d] text-white" : "bg-white text-[#14726e]"
                       )}>
                         {rank}
                       </div>
@@ -113,22 +112,22 @@ export default function LeaderboardPage() {
                     {/* Name + Score */}
                     <div className="text-center">
                       <p className={cn(
-                        "font-black italic uppercase tracking-tight truncate",
-                        isFirst ? "text-sm text-white max-w-[90px]" : "text-xs text-white/70 max-w-[72px]"
+                        "font-black uppercase tracking-tight truncate",
+                        isFirst ? "text-sm text-gray-900 max-w-[90px]" : "text-xs text-gray-500 max-w-[72px]"
                       )}>
                         {p.username}
                       </p>
                       <p className={cn(
-                        "text-[10px] font-black uppercase italic tracking-widest mt-0.5",
-                        isFirst ? "text-emerald-400" : "text-white/30"
+                        "text-[10px] font-black uppercase tracking-widest mt-0.5",
+                        isFirst ? "text-[#f36b2d]" : "text-gray-400"
                       )}>
                         {p.points || 0} pts
                       </p>
                     </div>
 
                     {/* Podium block */}
-                    <div className={cn("w-full rounded-t-2xl relative overflow-hidden", podiumHeights[i], podiumColors[i])}>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className={cn("w-full rounded-[24px] border relative overflow-hidden flex items-center justify-center", podiumHeights[i], podiumColors[i])}>
+                       <span className={cn("text-2xl font-black opacity-40", podiumTextColors[i])}>#{rank}</span>
                     </div>
                   </motion.div>
                 );
@@ -138,9 +137,9 @@ export default function LeaderboardPage() {
         )}
 
         {/* Full list */}
-        <section>
+        <section className="flex flex-col gap-4">
           <SectionTitle>Agentes de Campo</SectionTitle>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <AnimatePresence>
               {leaders.map((p, i) => {
                 const isMe = p.id === user?.id;
@@ -151,16 +150,16 @@ export default function LeaderboardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.03, ease: [0.16, 1, 0.3, 1] }}
                     className={cn(
-                      "flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200",
+                      "flex items-center gap-4 p-4 rounded-[28px] border transition-all duration-300",
                       isMe
-                        ? "bg-emerald-500/[0.07] border-emerald-500/40"
-                        : "bg-white/[0.02] border-white/[0.05]"
+                        ? "bg-white border-[#14726e]/30 shadow-md ring-2 ring-[#14726e]/5"
+                        : "bg-white/60 border-black/5 hover:bg-white hover:shadow-sm"
                     )}
                   >
                     {/* Rank */}
                     <div className={cn(
-                      "w-8 text-center font-black text-sm italic flex-shrink-0",
-                      i < 3 ? "text-emerald-400" : "text-white/20"
+                      "w-8 text-center font-black text-sm flex-shrink-0",
+                      i < 3 ? "text-[#f36b2d]" : "text-gray-300"
                     )}>
                       #{i + 1}
                     </div>
@@ -174,7 +173,7 @@ export default function LeaderboardPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-black text-white italic uppercase tracking-tight truncate text-sm">
+                        <span className="font-black text-gray-900 italic uppercase tracking-tight truncate text-sm">
                           {p.username}
                         </span>
                         {isMe && (
@@ -183,10 +182,10 @@ export default function LeaderboardPage() {
                         {i === 0 && <Crown size={12} className="text-yellow-400 flex-shrink-0" />}
                       </div>
                       <div className="flex gap-3">
-                        <span className="text-[10px] font-black flex items-center gap-1 text-white/40 uppercase tracking-wider">
+                        <span className="text-[10px] font-black flex items-center gap-1 text-gray-400 uppercase tracking-wider">
                           <Zap size={9} className="text-emerald-500" /> {p.points || 0}
                         </span>
-                        <span className="text-[10px] font-black flex items-center gap-1 text-white/40 uppercase tracking-wider">
+                        <span className="text-[10px] font-black flex items-center gap-1 text-gray-400 uppercase tracking-wider">
                           <Flame size={9} className="text-orange-500" /> {p.current_streak || 0}
                         </span>
                       </div>
@@ -197,9 +196,9 @@ export default function LeaderboardPage() {
             </AnimatePresence>
 
             {leaders.length === 0 && (
-              <div className="text-center py-20 bg-white/[0.01] border border-dashed border-white/[0.05] rounded-3xl">
-                <Ghost size={36} className="mx-auto text-white/10 mb-3" />
-                <p className="text-[10px] font-black text-white/15 uppercase tracking-widest">
+              <div className="text-center py-20 bg-black/5 border border-dashed border-black/10 rounded-3xl">
+                <Ghost size={36} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Base de datos vacía
                 </p>
               </div>

@@ -61,9 +61,14 @@ export type Poll = {
   expires_at?: string;
   created_at: string;
   groups?: { id: string; name: string };
+  questions?: Question;
   resolution_status?: 'open' | 'resolved';
   resolved_target_id?: string;
+  phase?: 'answering' | 'guessing';
+  vs_member_a?: string;
+  vs_member_b?: string;
 };
+
 
 export type Question = {
   id: string;
@@ -279,11 +284,44 @@ export const groupService = {
 };
 
 // ─────────────────────────────────────────────
+// INTERNAL HELPERS
+// ─────────────────────────────────────────────
+
+async function updateStreakAndPoints(voterId: string) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('current_streak, last_voted_at, points')
+    .eq('id', voterId)
+    .single();
+
+  if (!profile) return;
+  const now = new Date();
+  const lastVote = profile.last_voted_at ? new Date(profile.last_voted_at) : null;
+  let newStreak = profile.current_streak || 0;
+
+  if (!lastVote) {
+    newStreak = 1;
+  } else {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const last = new Date(lastVote.getFullYear(), lastVote.getMonth(), lastVote.getDate());
+    const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) newStreak += 1;
+    else if (diffDays > 1) newStreak = 1;
+  }
+
+  await supabase.from('profiles').update({
+    current_streak: newStreak,
+    last_voted_at: now.toISOString(),
+    points: (profile.points || 0) + 10,
+  }).eq('id', voterId);
+}
+
+// ─────────────────────────────────────────────
 // POLL SERVICE
 // ─────────────────────────────────────────────
 
 export const pollService = {
-  async createPoll(groupId: string, question: string, userId: string, pollType: Poll['poll_type'] = 'pool', questionId?: string) {
+  async createPoll(groupId: string, question: string, userId: string, pollType: QuestionMode | 'prediction' = 'poll', questionId?: string) {
     // Check limit
     const { count } = await supabase
       .from('polls')
@@ -295,25 +333,47 @@ export const pollService = {
       throw new Error("Límite de 5 encuestas activas alcanzado.");
     }
 
+    // Get group members for placeholder substitution
+    const members = await groupService.getGroupMembers(groupId);
+    const group = await groupService.getGroup(groupId);
+    
+    // Pick random members for placeholders
+    const shuffled = [...members].sort(() => 0.5 - Math.random());
+    const memberA = shuffled[0]?.profiles?.username || 'Alguien';
+    const memberB = shuffled[1]?.profiles?.username || 'Otro';
+    const memberAId = shuffled[0]?.profile_id;
+    const memberBId = shuffled[1]?.profile_id;
+
+    const rendered = questionService.renderQuestion(question, {
+      groupName: group?.name,
+      memberA: memberA,
+      memberB: memberB,
+      memberCount: members.length
+    });
+
     const { data, error } = await supabase
       .from('polls')
       .insert([{
         group_id: groupId,
         question,
-        rendered_question: question,
+        rendered_question: rendered,
         poll_type: pollType,
         question_mode: pollType,
         question_id: questionId,
         created_by: userId,
+        vs_member_a: memberAId,
+        vs_member_b: memberBId,
         is_active: true,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        resolution_status: pollType === 'prediction' ? 'open' : null
+        resolution_status: pollType === 'prediction' ? 'open' : null,
+        phase: 'answering'
       }])
       .select()
       .maybeSingle();
     if (error) throw error;
     return data as Poll;
   },
+
 
   async getTodaysPollCount(groupId: string): Promise<number> {
     const today = new Date().toISOString().split('T')[0];
@@ -339,15 +399,16 @@ export const pollService = {
     return data;
   },
 
-  async getPoll(pollId: string): Promise<Poll & { questions?: { category?: string; mode?: string } } | null> {
+  async getPoll(pollId: string): Promise<Poll | null> {
     const { data, error } = await supabase
       .from('polls')
-      .select('*, groups(id, name), questions(category, mode)')
+      .select('*, groups(id, name), questions(*)')
       .eq('id', pollId)
       .maybeSingle();
     if (error) return null;
     return data;
   },
+
 
   async resolvePrediction(pollId: string, resolvedTargetId: string, authorId: string) {
     const { error } = await supabase
@@ -392,38 +453,56 @@ export const pollService = {
       .from('votes')
       .insert([{ poll_id: pollId, voter_id: voterId, target_id: targetId }]);
     if (error) throw error;
+    await updateStreakAndPoints(voterId);
+  },
 
-    // Update streak and points
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('current_streak, last_voted_at, points')
-      .eq('id', voterId)
-      .single();
+  // Ranking mode: orderedMemberIds[0] = #1 position
+  async castRankingVote(pollId: string, voterId: string, orderedMemberIds: string[]) {
+    const { error } = await supabase
+      .from('votes')
+      .insert([{ poll_id: pollId, voter_id: voterId, target_id: JSON.stringify(orderedMemberIds) }]);
+    if (error) throw error;
+    await updateStreakAndPoints(voterId);
+  },
 
-    if (profile) {
-      const now = new Date();
-      const lastVote = profile.last_voted_at ? new Date(profile.last_voted_at) : null;
-      let newStreak = profile.current_streak || 0;
-
-      if (!lastVote) {
-        newStreak = 1;
-      } else {
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const last = new Date(lastVote.getFullYear(), lastVote.getMonth(), lastVote.getDate());
-        const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) newStreak += 1;
-        else if (diffDays > 1) newStreak = 1;
-      }
-
-      await supabase
-        .from('profiles')
-        .update({
-          current_streak: newStreak,
-          last_voted_at: now.toISOString(),
-          points: (profile.points || 0) + 10,
-        })
-        .eq('id', voterId);
+  // Compute consensus ranking from all ranking votes
+  async getRankingResults(pollId: string): Promise<{ memberId: string; avgRank: number; voteCount: number }[]> {
+    const { data } = await supabase.from('votes').select('target_id').eq('poll_id', pollId);
+    if (!data || data.length === 0) return [];
+    const sums: Record<string, number> = {};
+    const counts: Record<string, number> = {};
+    for (const vote of data) {
+      try {
+        const order: string[] = JSON.parse(vote.target_id);
+        order.forEach((id, idx) => {
+          sums[id] = (sums[id] || 0) + (idx + 1);
+          counts[id] = (counts[id] || 0) + 1;
+        });
+      } catch { /* skip non-JSON votes */ }
     }
+    return Object.keys(sums)
+      .map(id => ({ memberId: id, avgRank: sums[id] / counts[id], voteCount: counts[id] }))
+      .sort((a, b) => a.avgRank - b.avgRank);
+  },
+
+  // Free-text mode: transition poll to guessing phase
+  async transitionToGuessing(pollId: string) {
+    const { error } = await supabase
+      .from('polls')
+      .update({ phase: 'guessing' })
+      .eq('id', pollId);
+    if (error) throw error;
+  },
+
+  // Free-text mode: fetch answers anonymously (shuffled, no voter identity)
+  async getFreeAnswers(pollId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('votes')
+      .select('target_id')
+      .eq('poll_id', pollId);
+    if (error || !data) return [];
+    // Shuffle so submission order doesn't hint at identity
+    return data.map(v => v.target_id).sort(() => Math.random() - 0.5);
   },
 
   async getVoters(pollId: string): Promise<string[]> {

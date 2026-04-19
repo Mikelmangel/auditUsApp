@@ -23,7 +23,7 @@ import { PageTransition } from "@/components/PageTransition";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="bg-black antialiased overscroll-none">
+      <body className="bg-black antialiased overscroll-none" suppressHydrationWarning>
         {/* Living Background Mesh */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-900/15 blur-[120px] animate-pulse" />

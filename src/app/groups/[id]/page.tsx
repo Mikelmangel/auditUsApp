@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar, TabBar, PageHeader, LoadingScreen } from "@/components/ui";
 import {
-  Copy, Check, Crown, Flame, Zap, Plus, Share2, LogOut,
-  Loader2, Users, ShieldCheck, UserMinus, ChevronRight, Sparkles,
+  Copy, Plus, Share2, LogOut,
+  Loader2, UserMinus, ChevronRight, Sparkles, ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,6 +44,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [generating,       setGenerating]       = useState(false);
   const [survivalGame,     setSurvivalGame]     = useState<any>(null);
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
+  const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -89,8 +90,15 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     if (!group || !user) return;
     setCreating(true);
     try {
+      if (members.length < 2) {
+        toast.error("Necesitas al menos 2 miembros para lanzar la mayoría de encuestas.");
+        return;
+      }
       const q = await questionService.getRandomQuestion(group.id, members.length);
-      if (!q) { toast.error("No hay preguntas disponibles — ¡ya las respondisteis todas!"); return; }
+      if (!q) { 
+        toast.error("No hay preguntas adecuadas para " + members.length + " miembros."); 
+        return; 
+      }
       const shuffled = [...members].sort(() => Math.random() - 0.5);
       const rendered = questionService.renderQuestion(q.text, {
         groupName:   group.name,
@@ -179,8 +187,8 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   if (loading) return <LoadingScreen />;
 
   if (!group) return (
-    <div className="min-h-svh flex flex-col items-center justify-center gap-6 px-6 bg-black">
-      <p className="text-white/40 text-sm">Grupo no encontrado</p>
+    <div className="min-h-svh flex flex-col items-center justify-center gap-6 px-6 bg-[#f3ede2]">
+      <p className="text-gray-400 text-sm font-black uppercase tracking-widest">Grupo no encontrado</p>
       <Link href="/">
         <button className="btn-primary" style={{ maxWidth: 200 }}>Volver</button>
       </Link>
@@ -192,65 +200,178 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const currentUserRole = members.find(m => m.profile_id === user?.id)?.role;
   const isAdmin   = currentUserRole === "admin" || currentUserRole === "creator";
 
-  const pastDays = Array.from({ length: 15 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14 + i);
-    return d.toISOString().split("T")[0];
-  });
-  const formattedDay  = (dateStr: string) => new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric" }).format(new Date(dateStr));
   const isTodayDate   = (dateStr: string) => dateStr === new Date().toISOString().split("T")[0];
+
+  /* ── Unified Date Navigator Component ── */
+  const HistoryNavigator = () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          {tab === "audit" ? "Selector de fecha" : "Historial de encuestas"}
+        </h3>
+        <button 
+          onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+          className="text-[10px] font-black text-[#14726e] uppercase tracking-widest flex items-center gap-1 bg-white px-3 py-1.5 rounded-full border border-black/5 shadow-sm active:scale-95 transition-transform"
+        >
+          {isCalendarOpen ? "Ver tira" : "Ver mes completo"}
+          <ChevronRight size={10} className={cn("transition-transform", isCalendarOpen && "rotate-90")} />
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {isCalendarOpen ? (
+          <motion.div 
+            key="full-calendar"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white rounded-[32px] p-6 shadow-sm border border-black/5 mb-2">
+              {(() => {
+                const now = new Date();
+                const calYear = now.getFullYear();
+                const calMonth = now.getMonth();
+                const calYearStr = calYear.toString();
+                const calMonthStr = (calMonth + 1).toString().padStart(2, '0');
+                const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+                // Monday-first offset: 0=Mon … 6=Sun
+                let startOffset = new Date(calYear, calMonth, 1).getDay();
+                startOffset = startOffset === 0 ? 6 : startOffset - 1;
+                const todayStr = now.toISOString().split('T')[0];
+
+                return (
+                  <div className="grid grid-cols-7 gap-y-3 text-center">
+                    {["L","M","X","J","V","S","D"].map(d => (
+                      <span key={d} className="text-[10px] font-black text-gray-300 uppercase">{d}</span>
+                    ))}
+                    {Array.from({ length: startOffset }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${calYearStr}-${calMonthStr}-${day.toString().padStart(2, '0')}`;
+                      const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
+                      const isSelected = selectedDate === dateStr;
+                      const isToday = dateStr === todayStr;
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => setSelectedDate(dateStr)}
+                          className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition-all mx-auto",
+                            isSelected ? "bg-[#14726e] text-white shadow-lg shadow-[#14726e]/20" :
+                            hasPolls  ? "bg-orange-100 text-orange-500" :
+                            isToday   ? "border-2 border-[#14726e] text-[#14726e]" :
+                                        "text-gray-400 hover:bg-gray-50"
+                          )}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="collapsed-strip"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+          >
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+              {Array.from({ length: 14 }).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 13 + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const isSelected = selectedDate === dateStr;
+                const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
+                const hasSummary = summaries.some(s => new Date(s.created_at).toISOString().split("T")[0] === dateStr);
+                const dayName = new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(d);
+                const dayNum = d.getDate();
+
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={cn(
+                      "flex flex-col items-center justify-center min-w-[56px] h-[72px] rounded-2xl transition-all border relative",
+                      isSelected ? "bg-[#14726e] border-[#14726e] text-white shadow-lg shadow-[#14726e]/20" :
+                      hasPolls ? "bg-white border-orange-200 text-orange-500" :
+                      "bg-white border-black/5 text-gray-400"
+                    )}
+                  >
+                    <span className="text-[10px] font-black uppercase mb-1 opacity-60">{dayName}</span>
+                    <span className="text-base font-black">{dayNum}</span>
+                    {tab === "audit" && hasSummary && !isSelected && (
+                      <div className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#14726e]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
   /* ── Render ── */
   return (
-    <div className="min-h-svh bg-black relative overflow-x-hidden">
-      <div className="bg-mesh" />
-
-      {/* Header */}
-      <PageHeader
-        back="/"
-        title={
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-2xl leading-none">{group.avatar_emoji || "🔮"}</span>
-            <div className="min-w-0">
-              <h1 className="text-base font-black text-white truncate uppercase tracking-tight">
-                {group.name}
-              </h1>
-              <p className="text-[11px] text-white/40 font-medium">
-                {group.member_count || members.length} miembros
-              </p>
-            </div>
-          </div>
-        }
-        action={
-          <button onClick={share} className="btn-ghost !w-11 !h-11 !p-0 !rounded-xl" aria-label="Compartir">
-            <Share2 size={18} />
-          </button>
-        }
-        className="border-b border-white/[0.06]"
-      />
-
-      {/* Content */}
-      <div className="px-5 pb-32 pt-4 flex flex-col gap-4 relative z-10 max-w-[430px] mx-auto">
-
-        {/* Invite Code */}
-        <div className="card p-4">
-          <p className="section-label mb-3">Código de invitación</p>
-          <div className="flex items-center gap-3">
-            <div className="invite-code flex-1">{group.invite_code}</div>
-            <button
+    <div className="min-h-svh bg-[#f3ede2] relative overflow-x-hidden">
+      <header className="arc-header px-6 pb-14 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-4 min-w-0">
+          <Link href="/">
+             <motion.button 
+               whileTap={{ scale: 0.9 }}
+               className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+             >
+                <ChevronLeft size={24} />
+             </motion.button>
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-xl font-black text-white truncate lowercase">
+              {group.name}
+            </h1>
+            <button 
               onClick={copyCode}
-              aria-label="Copiar código"
-              className={cn(
-                "w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 transition-all duration-200",
-                copied
-                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
-                  : "bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/20"
-              )}
+              title="Copiar código"
+              className="bg-[#0e3e3b] rounded-full px-3 py-1 flex items-center gap-1 w-fit mt-1 border border-white/5 hover:bg-[#14726e] transition-colors cursor-pointer active:scale-95"
             >
-              {copied ? <Check size={18} /> : <Copy size={18} />}
+               <span className="text-[10px] font-black text-white">{group.invite_code}</span>
+               <Copy size={10} className="text-white/40" />
             </button>
           </div>
         </div>
+        
+        <button onClick={share} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-inner" aria-label="Compartir">
+          <Share2 size={20} strokeWidth={2.5} />
+        </button>
+      </header>
+
+      {/* Content */}
+      <div className="px-5 pb-32 pt-6 flex flex-col gap-6 relative z-10 max-w-[430px] mx-auto">
+
+         <div className="flex justify-between items-center bg-white rounded-[32px] p-4 shadow-sm border border-black/5">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-xl">🔥</div>
+               <div>
+                  <p className="text-xs font-black text-gray-900 leading-tight">Racha activa</p>
+                  <p className="text-[10px] text-orange-500 font-bold">
+                    {(() => {
+                      const days = Math.floor((Date.now() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                      return days === 0 ? "¡Día 1 juntos!" : `${days + 1} días juntos`;
+                    })()}
+                  </p>
+               </div>
+            </div>
+            <div className="bg-[#f3ede2] rounded-full px-4 py-2 font-black text-sm text-[#14726e]">
+               {members.length} Miembros
+            </div>
+         </div>
 
         {/* Active Polls + CTA */}
         <div className="flex flex-col gap-3">
@@ -303,7 +424,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 onClick={() => setShowPrediction(v => !v)}
                 disabled={creating}
                 className="btn-secondary"
-                style={{ borderStyle: "dashed", borderColor: "rgba(16,185,129,0.35)", color: "var(--emerald)" }}
+                style={{ borderStyle: "dashed", borderColor: "rgba(20,114,110,0.3)" }}
               >
                 <Sparkles size={16} />
                 Crear una Predicción Manual
@@ -317,9 +438,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                     exit={{ height: 0, opacity: 0 }}
                     style={{ overflow: "hidden" }}
                   >
-                    <div className="card p-4 flex flex-col gap-3 mt-1">
-                      <p className="text-sm font-semibold text-white/70">
-                        Escribe sobre qué quieres que apueste el grupo:
+                    <div className="card p-4 flex flex-col gap-3 mt-1 shadow-md">
+                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                        Predicción Personalizada
                       </p>
                       <input
                         className="input"
@@ -359,85 +480,71 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
         {/* Tab Content */}
         <AnimatePresence mode="wait">
 
-          {/* Polls Tab */}
+          {/* Polls Tab (Calendar View) */}
           {tab === "polls" && (
             <motion.div key="polls" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col gap-2">
-              {polls.length === 0 ? (
-                <div className="text-center py-12 text-white/30 text-sm">
-                  Todavía no hay encuestas en este grupo
-                </div>
-              ) : polls.map((poll, i) => {
-                const isActive = poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date());
-                return (
-                  <Link key={poll.id} href={`/poll/${poll.id}`} className="block">
-                    <motion.div
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className={cn(
-                        "list-item",
-                        isActive && "border-emerald-500/30 bg-emerald-500/[0.04]"
-                      )}
-                    >
-                      {isActive && <div className="live-dot flex-shrink-0" />}
-                      <p className="flex-1 font-semibold text-white text-sm leading-snug">
-                        {poll.rendered_question || poll.question}
-                      </p>
-                      <ChevronRight size={16} className="text-white/20 flex-shrink-0" />
-                    </motion.div>
-                  </Link>
-                );
-              })}
+              className="flex flex-col gap-6">
+              
+              <HistoryNavigator />
+
+              {/* Day Contents */}
+              <div className="flex flex-col gap-3">
+                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                    Preguntas del {new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(new Date(selectedDate))}
+                 </h4>
+                 {polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate).length === 0 ? (
+                    <div className="bg-white/50 rounded-[28px] p-6 text-center border border-dashed border-gray-300">
+                       <p className="text-sm font-bold text-gray-400">No hubo preguntas este día</p>
+                    </div>
+                 ) : (
+                    polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate).map((poll, i) => (
+                       <Link key={poll.id} href={`/poll/${poll.id}`}>
+                          <div className="bg-white rounded-[24px] p-4 flex items-center justify-between shadow-sm border border-black/5">
+                             <p className="font-bold text-gray-800 text-sm leading-snug">
+                                {poll.rendered_question || poll.question}
+                             </p>
+                             <div className="bg-gray-50 p-2 rounded-xl text-gray-300">
+                                <ChevronRight size={16} />
+                             </div>
+                          </div>
+                       </Link>
+                    ))
+                 )}
+              </div>
             </motion.div>
           )}
 
           {/* Members Tab */}
           {tab === "members" && (
             <motion.div key="members" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col gap-2">
+              className="flex flex-col gap-3">
               {members.map((m, i) => (
                 <motion.div
                   key={m.profile_id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className="list-item cursor-default"
+                  className="bg-white rounded-[24px] p-4 flex items-center gap-4 shadow-sm border border-black/5"
                 >
-                  <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={44} />
+                  <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={48} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-bold text-white text-sm truncate">{m.profiles?.username}</span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-black text-gray-900 text-sm truncate">{m.profiles?.username}</span>
                       {m.role === "creator" && (
-                        <span className="badge badge-amber">
-                          <Crown size={9} /> Creador
-                        </span>
-                      )}
-                      {m.role === "admin" && (
-                        <span className="badge badge-blue">
-                          <ShieldCheck size={9} /> Admin
-                        </span>
-                      )}
-                      {m.profile_id === user?.id && (
-                        <span className="badge badge-emerald">Tú</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
                       )}
                     </div>
                     <div className="flex gap-3">
-                      <span className="text-[11px] text-white/40 flex items-center gap-1">
-                        <Zap size={10} className="text-emerald-500" />
-                        {m.profiles?.points || 0} pts
-                      </span>
-                      <span className="text-[11px] text-white/40 flex items-center gap-1">
-                        <Flame size={10} className="text-orange-500" />
-                        {m.profiles?.current_streak || 0} racha
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                         {m.profiles?.points || 0} monedas
                       </span>
                     </div>
                   </div>
                   {isAdmin && m.profile_id !== user?.id && (
                     <button
                       onClick={() => handleKick(m.profile_id, m.profiles?.username)}
-                      className="btn-ghost !text-red-400 !w-10 !h-10 !p-0 !rounded-xl flex-shrink-0"
-                      aria-label={`Expulsar a ${m.profiles?.username}`}
+                      className="w-10 h-10 rounded-full bg-red-50 text-red-400 flex items-center justify-center"
+                      aria-label="Expulsar"
                     >
                       <UserMinus size={16} />
                     </button>
@@ -450,39 +557,27 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
           {/* Ranking Tab */}
           {tab === "ranking" && (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col gap-2">
+              className="flex flex-col gap-3">
               {ranking.map((m, i) => (
                 <motion.div
                   key={m.profile_id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.04 }}
                   className={cn(
-                    "list-item cursor-default",
-                    i === 0 && "border-emerald-500/30 bg-emerald-500/[0.06]"
+                    "bg-white rounded-[24px] p-4 flex items-center gap-4 shadow-sm border border-black/5",
+                    i === 0 && "ring-2 ring-orange-400"
                   )}
                 >
-                  {/* Position number */}
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0",
-                      i === 0 ? "bg-emerald-500 text-black" :
-                      i === 1 ? "bg-slate-500/30 text-slate-300" :
-                      i === 2 ? "bg-amber-700/30 text-amber-400" :
-                                "bg-white/5 text-white/30"
-                    )}
-                  >
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-black text-sm text-gray-400">
                     {i + 1}
                   </div>
-                  <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={40} />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold text-white text-sm block truncate">{m.profiles?.username}</span>
-                    <span className="text-[11px] text-white/40 flex items-center gap-1">
-                      <Zap size={10} className="text-emerald-500" />
-                      {m.profiles?.points || 0} pts
-                    </span>
+                  <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={44} />
+                  <div className="flex-1">
+                    <span className="font-black text-gray-900 text-sm block">{m.profiles?.username}</span>
+                    <span className="text-[10px] text-[#14726e] font-bold uppercase">{m.profiles?.points || 0} monedas</span>
                   </div>
-                  {i === 0 && <Crown size={18} className="text-yellow-400 flex-shrink-0" />}
+                  {i === 0 && <span className="text-2xl">🏆</span>}
                 </motion.div>
               ))}
             </motion.div>
@@ -493,36 +588,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
             <motion.div key="audit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex flex-col gap-4">
 
-              {/* Date Picker */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                {pastDays.map(dateStr => {
-                  const isSelected = selectedDate === dateStr;
-                  const hasSummary = summaries.some(s => new Date(s.created_at).toISOString().split("T")[0] === dateStr);
-                  const isToday    = isTodayDate(dateStr);
-                  return (
-                    <button
-                      key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
-                      className={cn(
-                        "flex flex-col items-center flex-shrink-0 rounded-2xl px-3 py-2 min-w-[56px] transition-all duration-200 relative border",
-                        isSelected
-                          ? "bg-emerald-500 border-emerald-500 text-black shadow-lg shadow-emerald-500/25"
-                          : "bg-white/[0.04] border-white/[0.06] text-white/60 hover:bg-white/[0.07]"
-                      )}
-                    >
-                      <span className={cn("text-[10px] font-bold uppercase", isSelected ? "text-black/70" : "text-white/40")}>
-                        {isToday ? "Hoy" : formattedDay(dateStr).split(" ")[0]}
-                      </span>
-                      <span className={cn("text-base font-black", isSelected ? "text-black" : "text-white")}>
-                        {formattedDay(dateStr).split(" ")[1]}
-                      </span>
-                      {hasSummary && !isSelected && (
-                        <div className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-500" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <HistoryNavigator />
 
               {/* Generate Button (today only) */}
               {isTodayDate(selectedDate) && (
@@ -534,7 +600,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 >
                   {generating
                     ? <Loader2 size={16} className="animate-spin" />
-                    : <Sparkles size={16} className="text-emerald-400" />
+                    : <Sparkles size={16} className="text-[#14726e]" />
                   }
                   {generating ? "Consultando a Gemini..." : "Generar Auditoría de Hoy"}
                 </button>
@@ -556,9 +622,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 return (
                   <>
                     {daySummary && (
-                      <div className="card p-5">
-                        <p className="section-label mb-4" style={{ color: "var(--emerald)" }}>Auditoría IA</p>
-                        <div className="prose-dark">
+                      <div className="card p-5 shadow-md">
+                        <p className="section-label mb-4 text-[#14726e]">Auditoría IA</p>
+                        <div className="prose-light text-gray-700 leading-relaxed text-sm">
                           <ReactMarkdown>{daySummary.content}</ReactMarkdown>
                         </div>
                       </div>
@@ -566,18 +632,18 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
 
                     {dayPolls.length > 0 && (
                       <div>
-                        <p className="section-label mb-3">Encuestas del Día</p>
-                        <div className="flex flex-col gap-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 pl-1">Encuestas del Día</p>
+                        <div className="flex flex-col gap-3">
                           {dayPolls.map(poll => {
                             const isActive = poll.is_active && (!poll.expires_at || new Date(poll.expires_at) > new Date()) && isTodayDate(selectedDate);
                             return (
                               <Link key={poll.id} href={`/poll/${poll.id}`} className="block">
-                                <div className={cn("list-item", isActive && "border-emerald-500/30")}>
+                                <div className={cn("bg-white rounded-[24px] p-4 flex items-center justify-between shadow-sm border border-black/5", isActive && "border-[#14726e]/30")}>
                                   {isActive && <div className="live-dot" />}
-                                  <p className="flex-1 text-white font-semibold text-sm leading-snug">
+                                  <p className="flex-1 text-gray-800 font-bold text-sm leading-snug">
                                     {poll.rendered_question || poll.question}
                                   </p>
-                                  <ChevronRight size={16} className="text-white/20 flex-shrink-0" />
+                                  <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
                                 </div>
                               </Link>
                             );
@@ -597,33 +663,33 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
               className="flex flex-col gap-4">
 
               {!survivalGame ? (
-                <div className="card p-8 flex flex-col items-center text-center gap-5">
-                  <div className="w-20 h-20 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-4xl">
+                <div className="bg-white rounded-[40px] p-8 flex flex-col items-center text-center gap-5 shadow-sm border border-black/5">
+                  <div className="w-20 h-20 rounded-3xl bg-red-100 flex items-center justify-center text-4xl shadow-inner">
                     ⚔️
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white mb-2">Battle Royale</h3>
-                    <p className="text-sm text-white/50 leading-relaxed max-w-[240px]">
-                      Modo de una semana donde cada día se elimina al más votado en la encuesta diaria.
+                    <h3 className="text-xl font-black text-gray-900 mb-2">Battle Royale</h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wide leading-relaxed max-w-[240px]">
+                      Modo eliminatorio: cada día al más votado le cortamos la cabeza.
                     </p>
                   </div>
                   {isAdmin && (
                     <button
                       onClick={startSurvival}
-                      className="btn-primary w-full"
-                      style={{ background: "#dc2626", boxShadow: "0 0 20px rgba(220,38,38,0.3)" }}
+                      className="btn-primary w-full shadow-lg shadow-red-500/20"
+                      style={{ background: "#dc2626" }}
                     >
                       Iniciar Battle Royale
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="card-elevated p-5">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-lg font-black" style={{ color: "#fca5a5" }}>En curso ⚔️</h3>
-                    <span className="live-dot" style={{ background: "#ef4444" }} />
+                <div className="card-elevated p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-black text-red-500 uppercase tracking-tighter">En curso ⚔️</h3>
+                    <div className="live-dot" style={{ background: "#ef4444" }} />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     {members.map(m => {
                       const participant = survivalGame.participants?.find((p: any) => p.profile_id === m.profile_id);
                       const isEliminated = participant?.is_eliminated;
@@ -631,19 +697,19 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                         <div
                           key={m.profile_id}
                           className={cn(
-                            "rounded-2xl p-3 flex flex-col items-center gap-2 relative overflow-hidden border transition-all",
+                            "rounded-[28px] p-4 flex flex-col items-center gap-2 relative overflow-hidden border transition-all",
                             isEliminated
-                              ? "bg-white/[0.02] border-white/[0.04] opacity-40"
-                              : "bg-white/[0.06] border-white/[0.08]"
+                              ? "bg-gray-50 border-gray-100 opacity-40 grayscale"
+                              : "bg-white border-black/5 shadow-sm"
                           )}
                         >
                           {isEliminated && (
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-full h-0.5 bg-red-500/60 rotate-[-15deg]" />
+                               <div className="w-full h-1 bg-red-500/40 rotate-[-15deg] blur-[1px]" />
                             </div>
                           )}
-                          <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={48} />
-                          <span className="text-xs font-bold text-white/80 text-center truncate w-full px-1">
+                          <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={52} />
+                          <span className="text-xs font-black text-gray-900 text-center truncate w-full px-1">
                             {m.profiles?.username}
                           </span>
                         </div>

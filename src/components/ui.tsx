@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { ChevronLeft, Home, Loader2, Search, Trophy, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Plus, Trophy, User, Search, ChevronLeft, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
 
-/* ── Avatar ── */
 export function Avatar({
   src, name, size = 48, className,
 }: { src?: string | null; name?: string; size?: number; className?: string }) {
@@ -16,7 +15,7 @@ export function Avatar({
 
   if (src) {
     return (
-      <div className={cn("relative rounded-full overflow-hidden border border-white/10 shadow-md", className)} style={style}>
+      <div className={cn("relative rounded-full overflow-hidden border-2 border-white shadow-sm", className)} style={style}>
         <img
           src={src}
           alt={name || "avatar"}
@@ -26,7 +25,7 @@ export function Avatar({
     );
   }
   return (
-    <div className={cn("avatar-placeholder shadow-md", className)} style={style}>
+    <div className={cn("avatar-placeholder shadow-sm border-white/50", className)} style={style}>
       {initials}
     </div>
   );
@@ -36,33 +35,31 @@ export function Avatar({
 export function BottomNav() {
   const pathname = usePathname();
   const items = [
-    { icon: Home,   label: "Inicio",   path: "/" },
-    { icon: Search, label: "Explorar", path: "/explore" },
-    { icon: Plus,   label: "Crear",    path: "/groups/new" },
-    { icon: Trophy, label: "Ranking",  path: "/leaderboard" },
-    { icon: User,   label: "Perfil",   path: "/profile" },
+    { icon: Home, label: "Votación", path: "/" },
+    { icon: Search, label: "Paquetes", path: "/explore" },
+    { icon: Trophy, label: "Información", path: "/leaderboard" },
+    { icon: User, label: "Extras", path: "/profile" },
   ];
 
   return (
-    <nav className="bottom-nav" aria-label="Navegación principal">
-      <div className="flex w-full items-end justify-between px-2">
+    <nav className="bottom-nav border-t border-black/5" aria-label="Navegación principal">
+      <div className="flex w-full items-center justify-between px-6">
         {items.map(({ icon: Icon, label, path }) => {
           const active = path === "/" ? pathname === "/" : pathname.startsWith(path);
           return (
             <Link
               key={path}
               href={path}
-              id={`nav-${label.toLowerCase()}`}
-              aria-label={label}
-              aria-current={active ? "page" : undefined}
-              className={cn("nav-item", active && "active")}
+              className={cn(
+                "flex flex-col items-center gap-1 transition-all duration-200",
+                active ? "text-[#14726e]" : "text-gray-400"
+              )}
             >
               <Icon
-                size={22}
-                strokeWidth={active ? 2.5 : 1.75}
-                className="transition-all duration-200"
+                size={24}
+                strokeWidth={active ? 2.5 : 2}
               />
-              <span className={cn(active ? "opacity-100" : "opacity-40")}>
+              <span className="text-[10px] font-black uppercase tracking-wider">
                 {label}
               </span>
             </Link>
@@ -110,10 +107,10 @@ export function PageHeader({
       <div className="flex-1 min-w-0">
         {title && (
           typeof title === "string"
-            ? <h1 className="text-xl font-black text-white truncate leading-tight">{title}</h1>
+            ? <h1 className="text-xl font-black text-gray-900 truncate leading-tight lowercase">{title}</h1>
             : title
         )}
-        {subtitle && <p className="text-xs text-white/40 font-medium mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">{subtitle}</p>}
       </div>
       {action && <div className="flex-shrink-0">{action}</div>}
     </header>
@@ -135,9 +132,6 @@ export function Card({
       onClick={onClick}
       style={onClick ? { cursor: "pointer" } : {}}
     >
-      {onClick && (
-        <div className="absolute inset-0 bg-emerald-500/0 group-active:bg-emerald-500/[0.04] transition-colors duration-150 rounded-[inherit]" />
-      )}
       <div className="relative z-10">{children}</div>
     </div>
   );
@@ -155,8 +149,9 @@ export function TabBar<T extends string>({
   onChange: (key: T) => void;
   className?: string;
 }) {
-  return (
-    <div className={cn("pill-tabs", className)} role="tablist">
+  const scrollable = tabs.length > 3;
+  const inner = (
+    <div className="pill-tabs" role="tablist" style={scrollable ? { minWidth: "max-content" } : undefined}>
       {tabs.map(({ key, label }) => (
         <button
           key={key}
@@ -170,6 +165,16 @@ export function TabBar<T extends string>({
       ))}
     </div>
   );
+
+  if (scrollable) {
+    return (
+      <div className={cn("overflow-x-auto -mx-5 px-5", className)}>
+        {inner}
+      </div>
+    );
+  }
+
+  return <div className={cn(className)}>{inner}</div>;
 }
 
 /* ── StatBadge ── */
@@ -185,7 +190,7 @@ export function StatBadge({
     <div className="stat-item">
       <div className="flex items-center gap-1.5 mb-0.5">
         {icon}
-        <span className={cn("stat-value", accent && "text-emerald-400")}>{value}</span>
+        <span className={cn("stat-value", accent && "text-[#14726e]")}>{value}</span>
       </div>
       <span className="stat-label">{label}</span>
     </div>
@@ -208,12 +213,12 @@ export function EmptyState({
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col items-center justify-center py-16 px-8 text-center gap-5"
     >
-      <div className="w-20 h-20 rounded-3xl bg-white/[0.04] flex items-center justify-center border border-white/[0.06] shadow-lg">
-        {Icon && <Icon size={36} className="text-white/20" />}
+      <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center border border-black/5 shadow-sm">
+        {Icon && <Icon size={36} className="text-gray-300" />}
       </div>
       <div>
-        <h3 className="text-white font-bold text-lg mb-2 leading-snug">{title}</h3>
-        {message && <p className="text-white/40 text-sm max-w-[230px] leading-relaxed">{message}</p>}
+        <h3 className="text-gray-900 font-black text-lg mb-2 leading-snug">{title}</h3>
+        {message && <p className="text-gray-400 text-sm font-medium max-w-[230px] leading-relaxed">{message}</p>}
       </div>
       {action}
     </motion.div>
@@ -223,12 +228,12 @@ export function EmptyState({
 /* ── LoadingScreen ── */
 export function LoadingScreen() {
   return (
-    <div className="min-h-svh flex items-center justify-center bg-black">
+    <div className="min-h-svh flex items-center justify-center bg-[#f3ede2]">
       <motion.div
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ scale: [0.95, 1.05, 0.95] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Loader2 size={36} className="text-emerald-500" style={{ animation: "spin 1s linear infinite" }} />
+        <div className="w-12 h-12 rounded-full border-4 border-[#14726e] border-t-transparent animate-spin" />
       </motion.div>
     </div>
   );
@@ -248,10 +253,10 @@ export function Button({
   loading?: boolean;
 }) {
   const clsMap = {
-    primary:   "btn-primary",
+    primary: "btn-primary",
     secondary: "btn-secondary",
-    ghost:     "btn-ghost",
-    danger:    "btn-danger",
+    ghost: "btn-ghost",
+    danger: "btn-danger",
   };
 
   return (
@@ -274,8 +279,8 @@ export function Button({
 export function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className="flex items-center gap-3 mb-5 px-0.5">
-      <div className="w-1 h-5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-      <h2 className={cn("text-[11px] font-black uppercase tracking-[0.2em] text-white/40", className)}>
+      <div className="w-1 h-5 bg-[#14726e] rounded-full shadow-[0_0_10px_rgba(20,114,110,0.3)]" />
+      <h2 className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-[#14726e]", className)}>
         {children}
       </h2>
     </div>
