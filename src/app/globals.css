@@ -52,12 +52,18 @@
   /* Animation */
   --ease-expo:      cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* LUCID AURA V3 TOKENS */
-  --aura-violet:    #8B5CF6;
-  --aura-pink:      #EC4899;
-  --aura-cyan:      #06B6D4;
-  --aura-indigo:    #6366F1;
-  --aura-bg:        #f8fafc;
+  /* STITCH V4 TOKENS */
+  --stitch-primary:   #4338CA;
+  --stitch-secondary: #7F65D0;
+  --stitch-accent:    #BA528E;
+  --stitch-canvas:    #F8FAFC;
+  --stitch-card-dark: #111827;
+  --stitch-border:    rgba(0,0,0,0.06);
+  --stitch-text-high: #111827;
+  --stitch-text-mid:  #4B5563;
+  
+  --radius-pill:      9999px;
+  --radius-card:      32px;
 }
 
 /* ─── BASE ─── */
@@ -412,65 +418,61 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 /* Hide scrollbars */
 ::-webkit-scrollbar { width: 0; display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
-/* ─── LUCID AURA V3 UTILITIES ─── */
+/* ─── STITCH V4 UTILITIES ─── */
 
-.glass-v3 {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
+.dot-grid {
+  background-image: radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.text-aura {
-  background: linear-gradient(135deg, var(--aura-violet) 0%, var(--aura-pink) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.btn-aura {
-  background: linear-gradient(135deg, var(--aura-violet) 0%, var(--aura-pink) 100%);
-  color: white;
-  border-radius: var(--radius-full);
-  padding: 14px 24px;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: -0.01em;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+.card-stitch {
+  background: white;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--stitch-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   transition: all 0.3s var(--ease-expo);
+}
+
+.card-stitch-dark {
+  background: var(--stitch-card-dark);
+  border-radius: var(--radius-card);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+.btn-pill {
+  background: var(--stitch-primary);
+  color: white;
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
+  font-weight: 700;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  transition: all 0.2s var(--ease-expo);
 }
 
-.btn-aura:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+.btn-pill:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
 }
 
-.aura-bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.15;
-  z-index: -1;
-  pointer-events: none;
+.chip-pill {
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  transition: all 0.2s;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(1deg); }
+@keyframes stitch-appear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-/* Custom Outlined Bold Style */
-.text-outline-aura {
-  -webkit-text-stroke: 1px var(--aura-violet);
-  color: transparent;
+.animate-stitch {
+  animation: stitch-appear 0.4s var(--ease-expo) forwards;
 }
 
 .font-outfit {

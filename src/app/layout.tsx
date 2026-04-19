@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "sonner";
 import { NudgeListener } from "@/components/NudgeListener";
-import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -11,9 +11,9 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const outfit = Outfit({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-outfit",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -35,7 +35,7 @@ import { PageTransition } from "@/components/PageTransition";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${plusJakarta.variable} ${outfit.variable}`}>
+    <html lang="es" className={`${plusJakarta.variable} ${inter.variable}`}>
       <body className="bg-[var(--bg)] antialiased overscroll-none" suppressHydrationWarning>
         {/* Living Background Aura Orbs (V3 style) */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-40">

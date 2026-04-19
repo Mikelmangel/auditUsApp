@@ -35,33 +35,37 @@ export function Avatar({
 export function BottomNav() {
   const pathname = usePathname();
   const items = [
-    { id: 'home', label: 'Inicio', icon: Home, path: '/' },
-    { id: 'explore', label: 'Explorar', icon: Search, path: '/explore' },
-    { id: 'connect', label: 'Conectar', icon: Users, path: '/groups/new' },
+    { id: 'all', label: 'Home', icon: Home, path: '/' },
+    { id: 'explore', label: 'Explore', icon: Search, path: '/explore' },
+    { id: 'connect', label: 'Connect', icon: Users, path: '/groups/new' },
     { id: 'ranking', label: 'Ranking', icon: Trophy, path: '/leaderboard' },
-    { id: 'profile', label: 'Perfil', icon: User, path: '/profile' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
   ];
 
   return (
-    <nav className="bottom-nav border-t border-black/5" aria-label="Navegación principal">
-      <div className="flex w-full items-center justify-between px-6">
-        {items.map(({ icon: Icon, label, path }) => {
-          const active = path === "/" ? pathname === "/" : pathname.startsWith(path);
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-20 bg-white border-t border-slate-100 flex items-center px-4 z-50 pb-safe">
+      <div className="flex w-full justify-between items-center px-2">
+        {items.map((item) => {
+          const isActive = pathname === item.path;
+          const Icon = item.icon;
           return (
             <Link
-              key={path}
-              href={path}
+              key={item.path}
+              href={item.path}
               className={cn(
-                "flex flex-col items-center gap-1 transition-all duration-200",
-                active ? "text-[#14726e]" : "text-gray-400"
+                "flex flex-col items-center justify-center gap-1 transition-all duration-300 px-3 py-1 rounded-2xl",
+                isActive ? "text-[var(--stitch-primary)]" : "text-slate-400"
               )}
             >
-              <Icon
-                size={24}
-                strokeWidth={active ? 2.5 : 2}
-              />
-              <span className="text-[10px] font-black uppercase tracking-wider">
-                {label}
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className={cn(
+                "transition-transform",
+                isActive && "scale-110"
+              )} />
+              <span className={cn(
+                "text-[10px] font-bold tracking-tight",
+                isActive ? "opacity-100" : "opacity-0"
+              )}>
+                {item.label}
               </span>
             </Link>
           );
