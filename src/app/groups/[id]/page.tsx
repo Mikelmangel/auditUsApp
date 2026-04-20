@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ChevronLeft, ChevronRight, Copy, Loader2, LogOut, MessageSquare, Plus, Share2, Sparkles, UserMinus, Zap
+  ChevronLeft, ChevronRight, Copy, LogOut, Share2, Sparkles, UserMinus, Zap
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -323,142 +323,86 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   return (
     <MobileLayout
       header={
-        <header className="px-6 pt-12 pb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4 min-w-0">
+        <header className="px-5 pt-10 pb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link href="/">
-              <button className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm active:scale-90 transition-transform">
-                <ChevronLeft size={22} className="text-slate-600" />
+              <button className="w-9 h-9 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm active:scale-90 transition-transform flex-shrink-0">
+                <ChevronLeft size={20} className="text-slate-600" />
               </button>
             </Link>
             <div className="min-w-0">
-              <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight truncate">
+              <h1 className="font-jakarta text-xl font-black text-slate-900 leading-none tracking-tight truncate">
                 {group.name}
               </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <button 
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <button
                   onClick={copyCode}
-                  className="bg-indigo-600 rounded-full pl-3 pr-2 py-1 flex items-center gap-2 active:scale-95 transition-all shadow-md shadow-indigo-500/20"
+                  className="bg-indigo-600 rounded-full pl-2.5 pr-1.5 py-0.5 flex items-center gap-1.5 active:scale-95 transition-all shadow-md shadow-indigo-500/20"
                 >
-                  <span className="font-inter text-[10px] font-black text-white uppercase tracking-widest">{group.invite_code}</span>
-                  <div className="bg-white/20 p-1 rounded-full"><Copy size={10} className="text-white" /></div>
+                  <span className="font-inter text-[9px] font-black text-white uppercase tracking-widest">{group.invite_code}</span>
+                  <div className="bg-white/20 p-0.5 rounded-full"><Copy size={9} className="text-white" /></div>
                 </button>
+                <span className="font-inter text-[9px] font-black text-slate-400 uppercase tracking-widest">🔥 {Math.floor((Date.now() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24)) + 1}d</span>
+                <span className="font-inter text-[9px] font-black text-slate-400 uppercase tracking-widest">👥 {members.length}</span>
               </div>
             </div>
           </div>
-          
-          <button onClick={share} className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-all">
-            <Share2 size={20} />
+
+          <button onClick={share} className="w-9 h-9 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm active:scale-95 transition-all flex-shrink-0">
+            <Share2 size={18} />
           </button>
         </header>
       }
       footer={<BottomNav />}
     >
-      <div className="px-5 pb-12 flex flex-col gap-8 max-w-[430px] mx-auto pt-4">
+      <div className="px-5 pb-6 flex flex-col gap-6 max-w-[430px] mx-auto pt-3">
 
-         
-         <div className="grid grid-cols-2 gap-3">
-            <Card className="p-5 flex items-center gap-4 border-slate-100/50">
-               <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl shadow-inner border border-amber-100">🔥</div>
-               <div>
-                  <p className="font-jakarta text-xs font-black text-slate-900 leading-none mb-1">Día {Math.floor((Date.now() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24)) + 1}</p>
-                  <p className="font-inter text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none">Racha Activa</p>
-               </div>
-            </Card>
-            <Card className="p-5 flex items-center gap-4 border-slate-100/50">
-               <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-xl shadow-inner border border-indigo-100">👥</div>
-               <div>
-                  <p className="font-jakarta text-xs font-black text-slate-900 leading-none mb-1">{members.length}</p>
-                  <p className="font-inter text-[9px] text-slate-400 font-black uppercase tracking-widest leading-none">Miembros</p>
-               </div>
-            </Card>
-         </div>
+        {/* Action buttons */}
+        {pollCount < 3 && (
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={createPoll}
+              loading={creating}
+              className="h-14 shadow-xl shadow-indigo-500/20"
+            >
+              {!creating && <Zap size={18} fill="currentColor" />}
+              Lanzar Auditoría Aleatoria ({pollCount}/3)
+            </Button>
 
-        {/* Action Center: Polls & Predictions */}
-        <div className="flex flex-col gap-4">
-          <AnimatePresence>
-            {activePolls.map(poll => (
+            {!showPrediction ? (
+              <button
+                onClick={() => setShowPrediction(true)}
+                className="w-full flex items-center justify-center gap-3 py-3.5 border-2 border-dashed border-slate-200 rounded-[32px] font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:bg-slate-50 transition-all active:scale-[0.98]"
+              >
+                <Sparkles size={14} />
+                Predicción Manual
+              </button>
+            ) : (
               <motion.div
-                key={poll.id}
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="overflow-hidden"
               >
-                <Link href={`/poll/${poll.id}`} className="block">
-                  <div className="bg-[var(--stitch-card-dark)] rounded-[32px] p-6 shadow-2xl shadow-indigo-900/40 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px] group-hover:bg-indigo-500/20 transition-all duration-700" />
-                    <div className="relative z-10">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full border border-white/5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                          <span className="font-inter text-[10px] font-black text-white/80 uppercase tracking-widest">En Vivo</span>
-                        </div>
-                        {poll.poll_type === "prediction" && (
-                          <span className="font-inter text-[10px] bg-indigo-500/20 text-indigo-300 font-black px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/30">
-                            Predicción
-                          </span>
-                        )}
-                      </div>
-                      <p className="font-jakarta font-black text-white text-lg leading-tight mb-4">
-                        {poll.rendered_question || poll.question}
-                      </p>
-                      <div className="flex items-center gap-2 text-white/40 font-jakarta font-bold text-xs group-hover:text-white/60 transition-colors">
-                        <span>Audiencia necesaria para completar</span>
-                        <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
+                <Card className="p-5 flex flex-col gap-4">
+                  <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Configurar Predicción</h4>
+                  <input
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 font-jakarta font-bold text-slate-900 text-sm focus:outline-none focus:border-indigo-400 transition-all"
+                    placeholder="¿Quién es más probable que...?"
+                    value={predictionText}
+                    onChange={e => setPredictionText(e.target.value)}
+                  />
+                  <div className="flex gap-3">
+                    <Button variant="secondary" onClick={() => setShowPrediction(false)}>Cancelar</Button>
+                    <Button onClick={createPrediction} loading={creating} disabled={!predictionText.trim()}>Lanzar</Button>
                   </div>
-                </Link>
+                </Card>
               </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {pollCount < 3 && (
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={createPoll}
-                loading={creating}
-                className="h-16 shadow-xl shadow-indigo-500/20"
-              >
-                {!creating && <Zap size={18} fill="currentColor" />}
-                Lanzar Auditoría Aleatoria ({pollCount}/3)
-              </Button>
-
-              {!showPrediction ? (
-                <button
-                  onClick={() => setShowPrediction(true)}
-                  className="w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-slate-200 rounded-[32px] font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:bg-slate-50 transition-all active:scale-[0.98]"
-                >
-                  <Sparkles size={16} />
-                  Predicción Manual
-                </button>
-              ) : (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="overflow-hidden"
-                >
-                  <Card className="p-6 flex flex-col gap-4 mt-2">
-                    <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Configurar Predicción</h4>
-                    <input
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 font-jakarta font-bold text-slate-900 text-sm focus:outline-none focus:border-indigo-400 transition-all"
-                      placeholder="¿Quién es más probable que...?"
-                      value={predictionText}
-                      onChange={e => setPredictionText(e.target.value)}
-                    />
-                    <div className="flex gap-3">
-                      <Button variant="secondary" onClick={() => setShowPrediction(false)}>Cancelar</Button>
-                      <Button onClick={createPrediction} loading={creating} disabled={!predictionText.trim()}>Lanzar</Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Main Tab System */}
-        <div className="flex flex-col gap-6 mt-4">
+        <div className="flex flex-col gap-5">
           <TabBar
             tabs={TABS}
             active={tab}
@@ -490,18 +434,32 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
-                      {polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate).map((poll) => (
-                        <Link key={poll.id} href={`/poll/${poll.id}`}>
-                          <Card className="p-5 flex items-center justify-between hover:scale-[1.01] transition-all border-slate-100/50">
-                            <p className="font-jakarta font-bold text-slate-800 text-sm leading-snug">
-                              {poll.rendered_question || poll.question}
-                            </p>
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100 shadow-inner">
-                              <ChevronRight size={18} />
-                            </div>
-                          </Card>
-                        </Link>
-                      ))}
+                      {polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate).map((poll) => {
+                        const isLive = activePolls.some(a => a.id === poll.id);
+                        return (
+                          <Link key={poll.id} href={`/poll/${poll.id}`}>
+                            <Card className={cn(
+                              "p-4 flex items-center justify-between hover:scale-[1.01] transition-all",
+                              isLive ? "border-indigo-200 bg-indigo-50/50 ring-1 ring-indigo-100" : "border-slate-100/50"
+                            )}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {isLive && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse flex-shrink-0" />
+                                )}
+                                <p className="font-jakarta font-bold text-slate-800 text-sm leading-snug">
+                                  {poll.rendered_question || poll.question}
+                                </p>
+                              </div>
+                              <div className={cn(
+                                "w-9 h-9 rounded-xl flex items-center justify-center border shadow-inner flex-shrink-0 ml-3",
+                                isLive ? "bg-indigo-100 text-indigo-400 border-indigo-200" : "bg-slate-50 text-slate-300 border-slate-100"
+                              )}>
+                                <ChevronRight size={16} />
+                              </div>
+                            </Card>
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
