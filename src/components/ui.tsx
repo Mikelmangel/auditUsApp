@@ -25,14 +25,14 @@ export function Avatar({
     );
   }
   return (
-    <div className={cn("avatar-placeholder shadow-sm border-white/50", className)} style={style}>
+    <div className={cn("flex items-center justify-center rounded-full bg-slate-100 text-slate-500 font-bold border-2 border-white shadow-sm", className)} style={style}>
       {initials}
     </div>
   );
 }
 
 /* ── BottomNav ── */
-export function BottomNav() {
+export function BottomNav({ className }: { className?: string }) {
   const pathname = usePathname();
   const items = [
     { id: 'all', label: 'Home', icon: Home, path: '/' },
@@ -43,7 +43,10 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] h-20 bg-white border-t border-slate-100 flex items-center px-4 z-50 pb-safe">
+    <nav className={cn(
+      "w-full h-20 bg-white/80 backdrop-blur-md border-t border-slate-100 flex items-center px-4 z-50 pb-safe",
+      className
+    )}>
       <div className="flex w-full justify-between items-center px-2">
         {items.map((item) => {
           const isActive = pathname === item.path;
@@ -62,7 +65,7 @@ export function BottomNav() {
                 isActive && "scale-110"
               )} />
               <span className={cn(
-                "text-[10px] font-bold tracking-tight",
+                "text-[10px] font-bold tracking-tight transition-opacity duration-300",
                 isActive ? "opacity-100" : "opacity-0"
               )}>
                 {item.label}
@@ -74,6 +77,7 @@ export function BottomNav() {
     </nav>
   );
 }
+
 
 /* ── PageHeader ── */
 export function PageHeader({
@@ -97,25 +101,25 @@ export function PageHeader({
 
   return (
     <header
-      className={cn("page-header flex items-center gap-3", className)}
-      style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 20px)` }}
+      className={cn("px-6 pt-12 pb-6 flex items-center gap-4 bg-transparent", className)}
     >
+
       {back !== undefined && (
         <button
           onClick={handleBack}
-          className="btn-ghost !min-h-[44px] !w-[44px] !rounded-xl !p-0 flex-shrink-0"
+          className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm active:scale-90 transition-transform"
           aria-label="Volver"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={22} className="text-slate-600" />
         </button>
       )}
       <div className="flex-1 min-w-0">
         {title && (
           typeof title === "string"
-            ? <h1 className="text-xl font-black text-gray-900 truncate leading-tight lowercase">{title}</h1>
+            ? <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-tight tracking-tight">{title}</h1>
             : title
         )}
-        {subtitle && <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="font-inter text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">{subtitle}</p>}
       </div>
       {action && <div className="flex-shrink-0">{action}</div>}
     </header>
@@ -133,7 +137,11 @@ export function Card({
 }) {
   return (
     <div
-      className={cn(elevated ? "card-elevated" : "card", "p-5 group relative overflow-hidden", className)}
+      className={cn(
+        "card-stitch p-6 group relative overflow-hidden bg-white",
+        elevated && "shadow-xl border-indigo-50",
+        className
+      )}
       onClick={onClick}
       style={onClick ? { cursor: "pointer" } : {}}
     >
@@ -156,13 +164,18 @@ export function TabBar<T extends string>({
 }) {
   const scrollable = tabs.length > 3;
   const inner = (
-    <div className="pill-tabs" role="tablist" style={scrollable ? { minWidth: "max-content" } : undefined}>
+    <div className="flex gap-2 p-1 bg-slate-100/50 rounded-full backdrop-blur-sm border border-slate-100" role="tablist" style={scrollable ? { minWidth: "max-content" } : undefined}>
       {tabs.map(({ key, label }) => (
         <button
           key={key}
           role="tab"
           aria-selected={active === key}
-          className={cn("pill-tab", active === key && "active")}
+          className={cn(
+            "chip-pill px-4 py-2 text-xs font-bold transition-all",
+            active === key 
+              ? "bg-[var(--stitch-primary)] text-white shadow-md shadow-indigo-500/20 scale-[1.02]" 
+              : "text-slate-500 hover:text-slate-800"
+          )}
           onClick={() => onChange(key)}
         >
           {label}
@@ -173,13 +186,13 @@ export function TabBar<T extends string>({
 
   if (scrollable) {
     return (
-      <div className={cn("overflow-x-auto -mx-5 px-5", className)}>
+      <div className={cn("overflow-x-auto no-scrollbar pb-2", className)}>
         {inner}
       </div>
     );
   }
 
-  return <div className={cn(className)}>{inner}</div>;
+  return <div className={cn("flex justify-center", className)}>{inner}</div>;
 }
 
 /* ── StatBadge ── */
@@ -192,12 +205,16 @@ export function StatBadge({
   accent?: boolean;
 }) {
   return (
-    <div className="stat-item">
-      <div className="flex items-center gap-1.5 mb-0.5">
+    <div className="flex flex-col items-center gap-1">
+      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
         {icon}
-        <span className={cn("stat-value", accent && "text-[#14726e]")}>{value}</span>
       </div>
-      <span className="stat-label">{label}</span>
+      <span className={cn("font-jakarta text-lg font-black leading-none mt-1", accent ? "text-[var(--stitch-primary)]" : "text-slate-900")}>
+        {value}
+      </span>
+      <span className="font-inter text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+        {label}
+      </span>
     </div>
   );
 }
@@ -216,14 +233,14 @@ export function EmptyState({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col items-center justify-center py-16 px-8 text-center gap-5"
+      className="flex flex-col items-center justify-center py-16 px-8 text-center gap-6"
     >
-      <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center border border-black/5 shadow-sm">
-        {Icon && <Icon size={36} className="text-gray-300" />}
+      <div className="w-20 h-20 rounded-[32px] bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+        {Icon ? <Icon size={36} className="text-slate-300" /> : <div className="text-4xl">🛰️</div>}
       </div>
       <div>
-        <h3 className="text-gray-900 font-black text-lg mb-2 leading-snug">{title}</h3>
-        {message && <p className="text-gray-400 text-sm font-medium max-w-[230px] leading-relaxed">{message}</p>}
+        <h3 className="font-jakarta text-xl font-black text-slate-900 mb-2 leading-none">{title}</h3>
+        {message && <p className="font-inter text-sm font-medium text-slate-400 max-w-[240px] leading-relaxed">{message}</p>}
       </div>
       {action}
     </motion.div>
@@ -233,13 +250,20 @@ export function EmptyState({
 /* ── LoadingScreen ── */
 export function LoadingScreen() {
   return (
-    <div className="min-h-svh flex items-center justify-center bg-[#f3ede2]">
+    <div className="min-h-svh flex flex-col items-center justify-center bg-[var(--stitch-canvas)] dot-grid">
       <motion.div
-        animate={{ scale: [0.95, 1.05, 0.95] }}
-        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ 
+          scale: [0.95, 1.05, 0.95],
+          rotate: [0, 180, 360]
+        }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        className="w-16 h-16 rounded-[24px] border-4 border-[var(--stitch-primary)] border-t-transparent flex items-center justify-center shadow-xl"
       >
-        <div className="w-12 h-12 rounded-full border-4 border-[#14726e] border-t-transparent animate-spin" />
+        <div className="w-4 h-4 rounded-full bg-[var(--stitch-primary)] animate-pulse" />
       </motion.div>
+      <p className="mt-8 font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">
+        Auditando Sistema...
+      </p>
     </div>
   );
 }
@@ -258,10 +282,10 @@ export function Button({
   loading?: boolean;
 }) {
   const clsMap = {
-    primary: "btn-primary",
-    secondary: "btn-secondary",
-    ghost: "btn-ghost",
-    danger: "btn-danger",
+    primary: "btn-pill",
+    secondary: "bg-white text-slate-900 border border-slate-200 rounded-full px-6 py-3 font-bold text-sm hover:bg-slate-50 transition-all",
+    ghost: "bg-transparent text-slate-500 rounded-full px-4 py-2 font-bold text-xs hover:bg-slate-100 transition-all",
+    danger: "bg-rose-50 text-rose-500 border border-rose-100 rounded-full px-6 py-3 font-bold text-sm hover:bg-rose-100 transition-all",
   };
 
   return (
@@ -271,8 +295,10 @@ export function Button({
       onClick={onClick}
       className={cn(
         clsMap[variant],
+        fullWidth && "w-full justify-center",
         !fullWidth && "w-auto",
-        className
+        className,
+        "flex items-center gap-2"
       )}
     >
       {loading ? <Loader2 size={18} className="animate-spin" /> : children}
@@ -283,9 +309,9 @@ export function Button({
 /* ── SectionTitle ── */
 export function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex items-center gap-3 mb-5 px-0.5">
-      <div className="w-1 h-5 bg-[#14726e] rounded-full shadow-[0_0_10px_rgba(20,114,110,0.3)]" />
-      <h2 className={cn("text-[10px] font-black uppercase tracking-[0.2em] text-[#14726e]", className)}>
+    <div className="flex items-center gap-3 mb-6 px-1">
+      <div className="w-2 h-6 bg-[var(--stitch-primary)] rounded-full shadow-lg shadow-indigo-500/30" />
+      <h2 className={cn("font-jakarta text-xs font-black uppercase tracking-[0.2em] text-slate-900", className)}>
         {children}
       </h2>
     </div>

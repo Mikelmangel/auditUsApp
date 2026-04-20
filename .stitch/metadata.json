@@ -1,0 +1,12 @@
+{
+  "projectId": "8977347405168916855",
+  "title": "AuditUs",
+  "deviceType": "MOBILE",
+  "designTheme": {
+    "colorMode": "LIGHT",
+    "font": "JAKARTA",
+    "roundness": "ROUND_THIRTY_TWO",
+    "customColor": "#4338CA"
+  },
+  "screens": {}
+}

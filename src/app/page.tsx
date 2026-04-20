@@ -1,10 +1,12 @@
 "use client";
 
-import { BottomNav, EmptyState, LoadingScreen, SectionTitle } from "@/components/ui";
+import { Avatar, BottomNav, Button, Card, EmptyState, LoadingScreen, SectionTitle } from "@/components/ui";
+import { MobileLayout } from "@/components/MobileLayout";
+
 import { useAuth } from "@/hooks/useAuth";
 import { groupService, pollService, profileService, type Group, type Profile } from "@/lib/services";
 import { motion } from "framer-motion";
-import { Flame, MessageSquare, Plus, Settings } from "lucide-react";
+import { Flame, MessageSquare, Plus, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,127 +37,140 @@ export default function Home() {
     });
   }, [user, authLoading]);
 
-
   if (authLoading || loading) return <LoadingScreen />;
 
   return (
-    <div className="min-h-svh flex flex-col bg-[#f3ede2]">
-      {/* Header with Arc */}
-      <header className="arc-header px-6 pb-12 flex items-center justify-between shadow-lg">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-2"
-        >
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full border-2 border-white" />
-          </div>
-          <h1 className="text-2xl font-black text-white tracking-tighter lowercase">
-            auditus
-          </h1>
-        </motion.div>
-
-        <div className="flex items-center gap-3">
-          <div className="bg-[#0e3e3b] rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-inner">
-            <span className="text-white font-black text-sm">{profile?.points || 0}</span>
-            <div className="w-4 h-4 rounded-full border-2 border-orange-400" />
-          </div>
-          <Link href="/profile">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/60">
-              <Settings size={20} strokeWidth={2.5} />
+    <MobileLayout
+      header={
+        <header className="px-6 pt-12 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--stitch-primary)] flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Zap size={20} className="text-white fill-white" />
             </div>
-          </Link>
-        </div>
-      </header>
+            <div>
+              <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight">
+                AuditUs
+              </h1>
+              <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                Dashboard Hub
+              </p>
+            </div>
+          </div>
 
-      {/* Main Content */}
-      <main className="px-6 -mt-8 relative z-10 flex-1 max-w-[430px] mx-auto w-full flex flex-col gap-6">
-        <div className="flex items-center gap-2 px-1">
-          <SectionTitle>Tus grupos</SectionTitle>
+          <div className="flex items-center gap-3">
+            <div className="bg-white rounded-full pl-3 pr-4 py-1.5 flex items-center gap-2 border border-slate-100 shadow-sm">
+              <span className="font-jakarta text-sm font-black text-slate-900">{profile?.points || 0}</span>
+              <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center text-[10px] text-white shadow-inner">💎</div>
+            </div>
+            <Link href="/profile">
+              <Avatar 
+                src={profile?.avatar_url} 
+                name={profile?.username} 
+                size={44} 
+                className="ring-2 ring-white shadow-md active:scale-95 transition-transform" 
+              />
+            </Link>
+          </div>
+        </header>
+      }
+      footer={<BottomNav />}
+    >
+      <main className="px-6 py-6 flex-1 max-w-[430px] mx-auto w-full flex flex-col gap-8">
+        <div className="flex items-center justify-between">
+          <SectionTitle className="mb-0">Tus Grupos</SectionTitle>
+          <div className="bg-indigo-50 text-[var(--stitch-primary)] px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-wider">
+            {groups.length} activos
+          </div>
         </div>
+
         {groups.length === 0 ? (
-          <EmptyState
-            title="Sin grupos"
-            message="No tienes grupos activos aún."
-            action={
-              <Link href="/groups/new" className="w-full">
-                <button className="btn-primary">
-                  + Crear grupo
-                </button>
-              </Link>
-            }
-          />
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <EmptyState
+              title="Sin grupos activos"
+              message="Únete a un grupo o crea uno nuevo para empezar a auditar a tus amigos."
+              action={
+                <Link href="/groups/new" className="w-full">
+                  <Button>
+                    <Plus size={20} />
+                    Crear primer grupo
+                  </Button>
+                </Link>
+              }
+            />
+          </motion.div>
         ) : (
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3">
-              {groups.map((group, i) => (
-                <Link key={group.id} href={`/groups/${group.id}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white rounded-[32px] p-4 flex items-center justify-between shadow-sm border border-black/5"
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Avatar Group Placeholder */}
-                      <div className="flex -space-x-2">
-                        {[1, 2, 3].map((n) => (
-                          <div key={n} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-400 overflow-hidden">
-                            {group.avatar_emoji || "👥"}
-                          </div>
-                        ))}
-                      </div>
+            {groups.map((group, i) => (
+              <motion.div
+                key={group.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Link href={`/groups/${group.id}`}>
+                  <Card className="hover:scale-[1.02] active:scale-[0.98] transition-all border-slate-100/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-[24px] bg-slate-50 flex items-center justify-center text-2xl border border-slate-100 shadow-inner">
+                          {group.avatar_emoji || "👥"}
+                        </div>
 
-                      <div>
-                        <h3 className="text-lg font-black text-gray-900 leading-tight">
-                          {group.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-gray-400 text-[10px] font-bold uppercase tracking-wider">
-                          <MessageSquare size={12} strokeWidth={3} />
-                          <span>
-                            {new Date(group.created_at).toLocaleDateString() === new Date().toLocaleDateString()
-                              ? "Hoy"
-                              : `Hace ${Math.floor((new Date().getTime() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24))}d`}
-                          </span>
+                        <div className="min-w-0">
+                          <h3 className="font-jakarta text-lg font-black text-slate-900 leading-tight truncate">
+                            {group.name}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <MessageSquare size={10} className="text-slate-400" />
+                              <span className="font-inter text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+                                {new Date(group.created_at).toLocaleDateString() === new Date().toLocaleDateString()
+                                  ? "Hoy"
+                                  : `Hace ${Math.floor((new Date().getTime() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24))}d`}
+                              </span>
+                            </div>
+                            {activePollsByGroup[group.id] && (
+                              <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-full">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                <span className="font-inter text-[9px] font-black text-indigo-600 uppercase">En vivo</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="bg-gray-100 rounded-full px-3 py-1.5 flex items-center gap-1.5">
-                      <span className="text-[11px] font-black text-gray-600">{profile?.current_streak || 0}</span>
-                      <Flame size={12} className="text-orange-500 fill-orange-500" />
+                      <div className="flex flex-col items-center gap-1 bg-amber-50 rounded-[20px] px-3 py-2 border border-amber-100 shadow-sm">
+                        <Flame size={14} className="text-amber-500 fill-amber-500" />
+                        <span className="font-jakarta text-xs font-black text-amber-700">{profile?.current_streak || 0}</span>
+                      </div>
                     </div>
-                  </motion.div>
+                  </Card>
                 </Link>
-              ))}
+              </motion.div>
+            ))}
+
+            <div className="mt-4 flex flex-col gap-3">
+              <Link href="/groups/new">
+                <Button className="h-16 shadow-xl shadow-indigo-500/20">
+                  <Plus size={20} className="text-white" />
+                  <span>Crear nuevo grupo</span>
+                </Button>
+              </Link>
+              
+              <Link href="/groups/new" className="text-center group">
+                <span className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-[var(--stitch-primary)] transition-colors">
+                  O unirse mediante código hexagonal
+                </span>
+                <div className="h-0.5 w-0 mx-auto bg-[var(--stitch-primary)] group-hover:w-20 transition-all duration-300" />
+              </Link>
             </div>
-
-            <Link href="/groups/new">
-              <div className="border-2 border-dashed border-[#14726e]/20 rounded-[32px] p-6 text-center bg-transparent group active:bg-[#14726e]/5 transition-colors">
-                <p className="text-[#14726e]/80 font-black text-sm uppercase tracking-wider mb-1">
-                  Creadores 🎬
-                </p>
-                <p className="text-[#14726e]/40 text-[10px] font-bold">
-                  Sugerencia
-                </p>
-              </div>
-            </Link>
-
-            <Link href="/groups/new">
-              <button className="btn-primary flex items-center justify-center gap-2">
-                <Plus size={20} strokeWidth={3} />
-                <span>Crear grupo</span>
-              </button>
-            </Link>
-
-            <p className="text-center text-[11px] font-bold text-[#14726e]/60">
-              o <Link href="/groups/new" className="underline underline-offset-4 decoration-[#14726e]/30">Unirse a un grupo</Link>
-            </p>
           </div>
         )}
       </main>
-
-      <BottomNav />
-    </div>
+    </MobileLayout>
   );
+
 }

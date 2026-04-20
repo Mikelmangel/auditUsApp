@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
+import { MobileLayout } from "@/components/MobileLayout";
+
 import { Loader2, BellRing, Menu, Calendar, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -263,40 +265,44 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     : null;
 
   return (
-    <div className="min-h-svh flex flex-col bg-[#f3ede2]">
-      <header className="arc-header px-6 pb-16 text-center">
-        <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={() => router.push('/')}
-            className="text-white/60 p-2" 
-            aria-label="Menu"
-          >
-            <Menu size={24} strokeWidth={2.5} />
-          </button>
-          
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Nueva pregunta en</span>
-            <span className="text-sm font-black text-white">{nextQuestionTime}</span>
+    <MobileLayout
+      header={
+        <header className="arc-header px-6 pb-12 text-center">
+          <div className="flex items-center justify-between mb-8">
+            <button 
+              onClick={() => router.push('/')}
+              className="text-white/60 p-2" 
+              aria-label="Menu"
+            >
+              <Menu size={24} strokeWidth={2.5} />
+            </button>
+            
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Nueva pregunta en</span>
+              <span className="text-sm font-black text-white">{nextQuestionTime}</span>
+            </div>
+            
+            <button 
+              onClick={() => router.push(`/groups/${poll.group_id}?tab=encuestas`)} 
+              className="text-white/60 p-2" 
+              aria-label="Calendario"
+            >
+              <Calendar size={24} strokeWidth={2.5} />
+            </button>
           </div>
-          
-          <button 
-            onClick={() => router.push(`/groups/${poll.group_id}?tab=encuestas`)} 
-            className="text-white/60 p-2" 
-            aria-label="Calendario"
+          <motion.p
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-2xl font-black text-white leading-tight tracking-tight px-4"
           >
-            <Calendar size={24} strokeWidth={2.5} />
-          </button>
-        </div>
-        <motion.p
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-2xl font-black text-white leading-tight tracking-tight px-4"
-        >
-          {poll.rendered_question || poll.question}
-        </motion.p>
-      </header>
+            {poll.rendered_question || poll.question}
+          </motion.p>
+        </header>
+      }
+      footer={<BottomNav />}
+    >
+      <main className="flex-1 px-6 -mt-8 relative z-10 flex flex-col gap-6 max-w-[430px] mx-auto w-full pb-12">
 
-      <main className="flex-1 px-6 -mt-8 relative z-10 flex flex-col gap-6 max-w-[430px] mx-auto w-full pb-36">
 
         {/* Progress pill */}
         <div className="flex justify-center">
@@ -648,8 +654,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </p>
         )}
       </main>
-
-      <BottomNav />
-    </div>
+    </MobileLayout>
   );
 }

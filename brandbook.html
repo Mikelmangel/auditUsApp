@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuditUs | Lucid Aura Brandbook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Outfit:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --aura-1: #8B5CF6; /* Violet */
+            --aura-2: #EC4899; /* Pink */
+            --aura-3: #06B6D4; /* Cyan */
+            --bg-base: #f8fafc;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-base);
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+
+        /* Lucid Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        /* Aura Backgrounds */
+        .aura-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-aura {
+            background: linear-gradient(135deg, var(--aura-1), var(--aura-2));
+            color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-aura:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="aura-bg"></div>
+
+    <header class="max-w-4xl mx-auto mb-16 text-center">
+        <h1 class="font-outfit text-6xl font-black italic tracking-tighter uppercase mb-2">
+            AuditUs <span class="text-gradient">V3</span>
+        </h1>
+        <p class="text-slate-500 font-semibold tracking-widest uppercase text-xs">Identidad Visual: Lucid Aura</p>
+    </header>
+
+    <main class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
+        
+        <!-- SECTION: COLORES -->
+        <section class="flex flex-col gap-6">
+            <h2 class="font-outfit text-2xl font-black uppercase italic">Sistemas de Aura</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="group">
+                    <div class="h-24 rounded-3xl bg-[#8B5CF6] shadow-lg mb-2"></div>
+                    <p class="text-[10px] font-bold uppercase text-slate-400">Electric Violet</p>
+                </div>
+                <div class="group">
+                    <div class="h-24 rounded-3xl bg-[#EC4899] shadow-lg mb-2"></div>
+                    <p class="text-[10px] font-bold uppercase text-slate-400">Luminous Pink</p>
+                </div>
+                <div class="group">
+                    <div class="h-24 rounded-3xl bg-[#06B6D4] shadow-lg mb-2"></div>
+                    <p class="text-[10px] font-bold uppercase text-slate-400">Cyan Spark</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: TYPOGRAPHY -->
+        <section class="flex flex-col gap-6">
+            <h2 class="font-outfit text-2xl font-black uppercase italic">Voz y Tono</h2>
+            <div class="space-y-4">
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-violet-500">Encabezados (Outfit)</span>
+                    <p class="font-outfit text-4xl font-black italic uppercase leading-none">Lucid Aura Visuals</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-violet-500">Cuerpo (Jakarta Sans)</span>
+                    <p class="text-lg text-slate-700 leading-relaxed font-semibold font-jakarta">
+                        Una experiencia que se siente viva. Interactiva, refrescante y premium.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: PACK CARDS EXAMPLES -->
+        <section class="md:col-span-2 space-y-8 mt-8">
+            <h2 class="font-outfit text-3xl font-black uppercase italic text-center">Ejemplo de Tarjetas</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="glass p-2 rounded-[40px] transition-transform hover:scale-[1.02] cursor-pointer">
+                    <div class="relative h-48 w-full rounded-[32px] overflow-hidden mb-4 bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-6xl">
+                        🍻
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                        <div class="absolute bottom-4 left-4">
+                            <h3 class="font-outfit text-2xl font-black text-white uppercase italic leading-none">Noche de Fiesta</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass p-2 rounded-[40px] transition-transform hover:scale-[1.02] cursor-pointer">
+                    <div class="relative h-48 w-full rounded-[32px] overflow-hidden mb-4 bg-gradient-to-br from-aura-1 to-aura-2 flex items-center justify-center text-6xl">
+                        🤖
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                        <div class="absolute bottom-4 left-4">
+                            <h3 class="font-outfit text-2xl font-black text-white uppercase italic leading-none">Modo IA</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: BUTTONS -->
+        <section class="max-w-md space-y-4">
+            <h2 class="font-outfit text-xl font-black uppercase italic">Botones</h2>
+            <div class="flex flex-col gap-4">
+                <button class="btn-aura py-4 px-8 rounded-full font-outfit text-xl font-black italic uppercase">
+                    Comenzar Auditoría
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-32 text-center text-slate-300 font-bold uppercase text-[10px] tracking-[0.5em] pb-12">
+        AuditUs &copy; 2026 Lucid Aura Design System
+    </footer>
+</body>
+</html>

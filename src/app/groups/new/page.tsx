@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/ui";
+import { MobileLayout } from "@/components/MobileLayout";
+
 import { ChevronLeft, Hash, Plus, Link as LinkIcon, Loader2, Users } from "lucide-react";
 import { groupService } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,40 +47,43 @@ export default function NewGroupPage() {
   };
 
   return (
-    <div className="min-h-svh bg-[#f3ede2] flex flex-col">
-      {/* Header with Arc */}
-      <header className="arc-header px-6 pb-20 text-center relative overflow-hidden">
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <Link href="/">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
-              className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white"
-            >
-              <ChevronLeft size={20} />
-            </motion.button>
-          </Link>
-          <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">
-            Conectar
-          </h1>
-          <div className="w-10 h-10" />
-        </div>
+    <MobileLayout
 
-        <motion.div
-           initial={{ opacity: 0, scale: 0.9 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="relative z-10"
-        >
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">
-            Gestión de Círculos
-          </p>
-          <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
-            {mode === "create" ? "Nuevo Grupo" : "Unirse"}
-          </h2>
-        </motion.div>
-      </header>
+      header={
+        <header className="arc-header px-6 pb-12 text-center relative overflow-hidden">
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <Link href="/">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.92 }}
+                className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white"
+              >
+                <ChevronLeft size={20} />
+              </motion.button>
+            </Link>
+            <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">
+              Conectar
+            </h1>
+            <div className="w-10 h-10" />
+          </div>
 
-      <div className="px-5 pb-40 flex-1 max-w-[430px] mx-auto w-full -mt-10 relative z-10">
+          <motion.div
+             initial={{ opacity: 0, scale: 0.9 }}
+             animate={{ opacity: 1, scale: 1 }}
+             className="relative z-10"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-1">
+              Gestión de Círculos
+            </p>
+            <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
+              {mode === "create" ? "Nuevo Grupo" : "Unirse"}
+            </h2>
+          </motion.div>
+        </header>
+      }
+      footer={<BottomNav />}
+    >
+      <div className="px-5 pb-12 flex-1 max-w-[430px] mx-auto w-full pt-6">
         {/* Mode Tabs */}
         <div className="bg-white/60 backdrop-blur-md p-1.5 rounded-[24px] border border-black/5 flex items-center mb-8 shadow-sm">
           <button
@@ -243,8 +248,6 @@ export default function NewGroupPage() {
           )}
         </AnimatePresence>
       </div>
-
-      <BottomNav />
-    </div>
+    </MobileLayout>
   );
 }
