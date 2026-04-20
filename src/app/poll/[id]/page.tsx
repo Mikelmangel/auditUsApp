@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
 import { MobileLayout } from "@/components/MobileLayout";
 
-import { Loader2, BellRing, Menu, Calendar, Lock, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, BellRing, Home, ChevronLeft, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,7 +27,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showNudgeList, setShowNudgeList] = useState(false);
   const [voters, setVoters] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   // Ranking mode
@@ -267,33 +267,33 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   return (
     <MobileLayout
       header={
-        <header className="arc-header px-6 pb-12 text-center">
-          <div className="flex items-center justify-between mb-8">
-            <button 
-              onClick={() => router.push('/')}
-              className="text-white/60 p-2" 
-              aria-label="Menu"
+        <header className="arc-header px-5 text-center" style={{ paddingBottom: 28, paddingTop: 40 }}>
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => router.push(`/groups/${poll.group_id}`)}
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70 active:scale-90 transition-transform"
+              aria-label="Volver al grupo"
             >
-              <Menu size={24} strokeWidth={2.5} />
+              <ChevronLeft size={20} strokeWidth={2.5} />
             </button>
-            
+
             <div className="flex flex-col items-center">
-              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Nueva pregunta en</span>
-              <span className="text-sm font-black text-white">{nextQuestionTime}</span>
+              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Nueva en</span>
+              <span className="text-sm font-black text-white tabular-nums">{nextQuestionTime}</span>
             </div>
-            
-            <button 
-              onClick={() => router.push(`/groups/${poll.group_id}?tab=encuestas`)} 
-              className="text-white/60 p-2" 
-              aria-label="Calendario"
+
+            <button
+              onClick={() => router.push('/')}
+              className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/70 active:scale-90 transition-transform"
+              aria-label="Menú principal"
             >
-              <Calendar size={24} strokeWidth={2.5} />
+              <Home size={18} strokeWidth={2.5} />
             </button>
           </div>
           <motion.p
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-2xl font-black text-white leading-tight tracking-tight px-4"
+            className="text-lg font-black text-white leading-snug tracking-tight px-2"
           >
             {poll.rendered_question || poll.question}
           </motion.p>
@@ -301,18 +301,68 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       }
       footer={<BottomNav />}
     >
-      <main className="flex-1 px-6 -mt-8 relative z-10 flex flex-col gap-6 max-w-[430px] mx-auto w-full pb-12">
+      <main className="flex-1 px-5 -mt-5 relative z-10 flex flex-col gap-5 max-w-[430px] mx-auto w-full pb-8">
 
+        {/* Progress + Nudge */}
+        {(() => {
+          const pending = members.filter(m => !voters.includes(m.profile_id));
+          const allVoted = pending.length === 0;
+          return (
+            <div className="bg-white/80 backdrop-blur-md rounded-[20px] border border-black/5 shadow-sm overflow-hidden">
+              <button
+                className="w-full flex items-center justify-between px-4 py-3 gap-3"
+                onClick={() => !allVoted && setShowNudgeList(v => !v)}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                  </div>
+                  <span className="text-xs font-black text-indigo-600">
+                    Han respondido {voters.length} de {members.length}
+                  </span>
+                </div>
+                {allVoted ? (
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✓ Completo</span>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-[#14726e] uppercase tracking-widest">
+                    <BellRing size={11} />
+                    Enviar zumbido
+                  </div>
+                )}
+              </button>
 
-        {/* Progress pill */}
-        <div className="flex justify-center">
-          <div className="bg-white/50 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 shadow-sm border border-black/5">
-            <div className="w-4 h-4 rounded-full border-2 border-[#14726e] flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#14726e]" />
+              <AnimatePresence>
+                {showNudgeList && pending.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: "auto" }}
+                    exit={{ height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-3 pt-1 border-t border-black/5 flex flex-col gap-2">
+                      {pending.map(m => (
+                        <div key={m.profile_id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={32} />
+                            <span className="text-sm font-black text-gray-900">{m.profiles?.username}</span>
+                          </div>
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => sendNudge(m.profile_id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-[#14726e] text-xs font-black uppercase tracking-wider active:bg-gray-200 transition-all"
+                          >
+                            <BellRing size={11} />
+                            Zumbar
+                          </motion.button>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <span className="text-xs font-black text-[#14726e]">Han respondido {voters.length} de {members.length}</span>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Voting area */}
         {poll.is_active ? (
@@ -575,19 +625,19 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         )}
 
         {/* Comments */}
-        <div className="flex flex-col gap-4 pb-4" ref={commentsRef}>
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 pb-4" ref={commentsRef}>
+          <div className="flex items-center gap-3 px-1">
             <div className="flex -space-x-2">
               {members.slice(0, 3).map(m => (
-                <Avatar key={m.profile_id} src={m.profiles?.avatar_url} name={m.profiles?.username} size={32} />
+                <Avatar key={m.profile_id} src={m.profiles?.avatar_url} name={m.profiles?.username} size={28} />
               ))}
             </div>
-            <button onClick={() => setShowComments(v => !v)} className="text-xs font-black text-[#14726e] uppercase tracking-wider">
-              {comments.length} Comentarios
-            </button>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              {comments.length === 0 ? "Sin comentarios" : `${comments.length} Comentario${comments.length !== 1 ? "s" : ""}`}
+            </span>
           </div>
 
-          {showComments && comments.length > 0 && (
+          {comments.length > 0 && (
             <div className="flex flex-col gap-2">
               {comments.map(c => (
                 <div key={c.id} className="flex items-start gap-3 bg-white rounded-2xl px-4 py-3 border border-black/5 shadow-sm">
@@ -618,41 +668,6 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </form>
         </div>
 
-        {/* Nudge pending voters */}
-        {voted && (
-          <AnimatePresence>
-            {members.filter(m => !voters.includes(m.profile_id)).length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 px-2">
-                <div className="flex items-center gap-3 px-1">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">Faltan por votar</p>
-                  <div className="flex-1 h-px bg-black/5" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  {members.filter(m => !voters.includes(m.profile_id)).map(m => (
-                    <div key={m.profile_id} className="flex items-center justify-between bg-white rounded-[24px] px-4 py-3 border border-black/5 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={36} />
-                        <span className="text-sm font-black text-gray-900">{m.profiles?.username}</span>
-                      </div>
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => sendNudge(m.profile_id)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 text-[#14726e] text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition-all"
-                      >
-                        <BellRing size={13} />
-                        Zumbar
-                      </motion.button>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
-
-        {voted && members.filter(m => !voters.includes(m.profile_id)).length === 0 && (
-          <p className="text-center text-[#14726e]/50 text-xs font-black uppercase tracking-widest py-4">
-            ✓ Todo el grupo ha votado
-          </p>
-        )}
       </main>
     </MobileLayout>
   );
