@@ -15,14 +15,16 @@ export async function GET(request: Request) {
 
     for (const group of groups) {
       try {
+        // Cerrar siempre todas las encuestas activas, independientemente de si hay stats hoy
+        await pollService.closeActivePolls(group.id);
+
         const stats = await summaryService.getSummaryStats(group.id);
-        
-        // Solo generamos si hay al menos una encuesta hoy
+
         if (stats && stats.length > 0) {
           // --- BEGIN SURVIVAL ELIMINATION LOGIC ---
           const activeGame = await survivalService.getActiveGame(group.id).catch(() => null);
           let eliminatedUser: string | null = null;
-          
+
           if (activeGame) {
             const voteCounts: Record<string, number> = {};
             stats.forEach(poll => {
@@ -31,7 +33,6 @@ export async function GET(request: Request) {
               });
             });
 
-            // Find highest voted user who is a participant and not already eliminated
             let maxVotes = 0;
             Object.entries(voteCounts).forEach(([userId, count]) => {
               const participant = activeGame.participants.find((p: any) => p.profile_id === userId);
@@ -43,25 +44,19 @@ export async function GET(request: Request) {
 
             if (eliminatedUser) {
               await survivalService.eliminateParticipant(activeGame.id, eliminatedUser);
-              
-              // Check for winner
+
               const remaining = activeGame.participants.filter((p: any) => !p.is_eliminated && p.profile_id !== eliminatedUser);
               if (remaining.length <= 1) {
                 await survivalService.finishGame(activeGame.id);
-                // We could add points here later
               }
             }
           }
           // --- END SURVIVAL LOGIC ---
 
-          // Modificamos el contexto de Gemini para que sepa si alguien cayó
           const extraContext = eliminatedUser ? `\n\nATENCIÓN MODO SUPERVIVENCIA: Hemos eliminado a un participante hoy debido a que recibió la mayoría de los votos. Destaca este evento dramático.` : "";
 
           const auditContent = await gemini.generateSummary("Hoy", group.name, stats);
           await summaryService.createSummary(group.id, "daily", auditContent + extraContext, stats);
-          
-          // Cerrar todas las encuestas activas para que no se arrastren al siguiente día
-          await pollService.closeActivePolls(group.id);
 
           results.push({ groupId: group.id, status: 'success' });
         } else {

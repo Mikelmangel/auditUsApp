@@ -597,13 +597,16 @@ export const summaryService = {
   },
 
   async getSummaryStats(groupId: string) {
-    // Fetch last 3 polls and their results for the daily audit
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     const { data: polls } = await supabase
       .from('polls')
       .select('*, votes(target_id), comments(content, profiles(username))')
       .eq('group_id', groupId)
+      .gte('created_at', todayStart.toISOString())
       .order('created_at', { ascending: false })
-      .limit(3);
+      .limit(10);
 
     // Fetch members to map UUID to username
     const { data: members } = await supabase
