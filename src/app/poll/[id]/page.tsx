@@ -267,7 +267,10 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
   return (
     <MobileLayout
       header={
-        <header className="arc-header px-5 text-center" style={{ paddingBottom: 28, paddingTop: 40 }}>
+        <header
+          className="bg-indigo-600 px-5 text-center rounded-b-[32px] shadow-xl shadow-indigo-900/20"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)', paddingBottom: '20px' }}
+        >
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => router.push(`/groups/${poll.group_id}`)}
@@ -293,7 +296,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           <motion.p
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-lg font-black text-white leading-snug tracking-tight px-2"
+            className="font-jakarta text-lg font-black text-white leading-snug tracking-tight px-2"
           >
             {poll.rendered_question || poll.question}
           </motion.p>
@@ -301,7 +304,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       }
       footer={<BottomNav />}
     >
-      <main className="flex-1 px-5 -mt-5 relative z-10 flex flex-col gap-5 max-w-[430px] mx-auto w-full pb-8">
+      <main className="flex-1 px-5 mt-4 relative z-10 flex flex-col gap-5 max-w-[430px] mx-auto w-full pb-8">
 
         {/* Progress + Nudge */}
         {(() => {
@@ -324,7 +327,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 {allVoted ? (
                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✓ Completo</span>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-[10px] font-black text-[#14726e] uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-widest">
                     <BellRing size={11} />
                     Enviar zumbido
                   </div>
@@ -349,7 +352,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => sendNudge(m.profile_id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-[#14726e] text-xs font-black uppercase tracking-wider active:bg-gray-200 transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-wider active:bg-indigo-100 transition-all"
                           >
                             <BellRing size={11} />
                             Zumbar
@@ -377,19 +380,19 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 ].map(({ m, id }) => m && id && (
                   <motion.button key={id} whileTap={{ scale: 0.98 }} onClick={() => !voted && vote(id)}
                     className={cn(
-                      "relative h-14 rounded-full flex items-center border overflow-hidden transition-all",
-                      voted ? "bg-gray-100 border-black/5" : "bg-[#ffc800] border-[#ffc800] shadow-sm active:bg-[#f36b2d]"
+                      "relative h-14 rounded-[20px] flex items-center border overflow-hidden transition-all",
+                      voted ? "bg-slate-50 border-slate-100" : "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-500/20"
                     )}
                   >
-                    <div className="flex items-center gap-3 px-1 pointer-events-none">
-                      <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={48} />
-                      <span className="font-black text-[#0e3e3b] text-base">{m.profiles?.username}</span>
+                    <div className="flex items-center gap-3 px-2 pointer-events-none relative z-10">
+                      <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={44} />
+                      <span className={cn("font-black text-base", voted ? "text-slate-700" : "text-white")}>{m.profiles?.username}</span>
                     </div>
                     {voted && totalVotes > 0 && (
                       <motion.div initial={{ width: 0 }} animate={{ width: `${((results[id] || 0) / totalVotes) * 100}%` }}
-                        className="absolute inset-0 bg-[#ffc800] z-[1] flex items-center justify-end pr-6"
+                        className="absolute inset-0 bg-indigo-500 z-[1] flex items-center justify-end pr-5"
                       >
-                        <span className="font-black text-[#0e3e3b]">{Math.round(((results[id] || 0) / totalVotes) * 100)}%</span>
+                        <span className="font-black text-white text-sm">{Math.round(((results[id] || 0) / totalVotes) * 100)}%</span>
                       </motion.div>
                     )}
                   </motion.button>
@@ -403,29 +406,29 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 {members.map((m) => (
                   <motion.button key={m.profile_id} whileTap={{ scale: 0.98 }} onClick={() => !voted && vote(m.profile_id)}
                     className={cn(
-                      "relative h-14 rounded-full flex items-center border overflow-hidden transition-all",
-                      voted ? "bg-gray-100 border-black/5" : "bg-[#ffc800] border-[#ffc800]"
+                      "relative h-14 rounded-[20px] flex items-center border overflow-hidden transition-all",
+                      voted ? "bg-slate-50 border-slate-100" : "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-500/20"
                     )}
                   >
-                    <div className="flex items-center gap-3 px-1 pointer-events-none">
-                      <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={48} />
-                      <span className="font-black text-[#0e3e3b] text-base">{m.profiles?.username}</span>
+                    <div className="flex items-center gap-3 px-2 pointer-events-none relative z-10">
+                      <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={44} />
+                      <span className={cn("font-black text-base", voted ? "text-slate-700" : "text-white")}>{m.profiles?.username}</span>
                     </div>
                     {voted && totalVotes > 0 && (
                       <motion.div initial={{ width: 0 }} animate={{ width: `${((results[m.profile_id] || 0) / totalVotes) * 100}%` }}
-                        className="absolute inset-0 bg-[#ffc800] z-[1] flex items-center justify-end pr-6"
+                        className="absolute inset-0 bg-indigo-500 z-[1] flex items-center justify-end pr-5"
                       >
-                        <span className="font-black text-[#0e3e3b]">{Math.round(((results[m.profile_id] || 0) / totalVotes) * 100)}%</span>
+                        <span className="font-black text-white text-sm">{Math.round(((results[m.profile_id] || 0) / totalVotes) * 100)}%</span>
                       </motion.div>
                     )}
                   </motion.button>
                 ))}
                 {pollMode === 'prediction' && voted && isAdmin && poll.resolution_status === 'open' && (
                   <div className="flex flex-col gap-2 mt-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Resolver predicción (admin)</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Resolver predicción (admin)</p>
                     {members.map(m => (
                       <button key={m.profile_id} onClick={() => resolvePrediction(m.profile_id)}
-                        className="h-10 rounded-full border border-dashed border-[#14726e]/40 text-xs font-black text-[#14726e] px-4"
+                        className="h-10 rounded-full border border-dashed border-indigo-400/40 text-xs font-black text-indigo-600 px-4"
                       >
                         ✓ {m.profiles?.username} ganó
                       </button>
@@ -441,16 +444,16 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 {(poll.questions?.options || []).map((opt: string) => (
                   <motion.button key={opt} whileTap={{ scale: 0.98 }} onClick={() => !voted && vote(opt)}
                     className={cn(
-                      "relative h-14 rounded-full flex items-center border transition-all overflow-hidden",
-                      voted ? "bg-gray-200 border-black/5" : "bg-[#ffc800] border-[#ffc800]"
+                      "relative h-14 rounded-[20px] flex items-center border transition-all overflow-hidden",
+                      voted ? "bg-slate-50 border-slate-100" : "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-500/20"
                     )}
                   >
-                    <span className="px-6 font-black text-[#0e3e3b] relative z-10">{opt}</span>
+                    <span className={cn("px-6 font-black relative z-10", voted ? "text-slate-700" : "text-white")}>{opt}</span>
                     {voted && totalVotes > 0 && (
                       <motion.div initial={{ width: 0 }} animate={{ width: `${((results[opt] || 0) / totalVotes) * 100}%` }}
-                        className="absolute inset-0 bg-[#ffc800] z-[5] flex items-center justify-end pr-6"
+                        className="absolute inset-0 bg-indigo-500 z-[5] flex items-center justify-end pr-5"
                       >
-                        <span className="font-black text-[#0e3e3b]">{Math.round(((results[opt] || 0) / totalVotes) * 100)}%</span>
+                        <span className="font-black text-white text-sm">{Math.round(((results[opt] || 0) / totalVotes) * 100)}%</span>
                       </motion.div>
                     )}
                   </motion.button>
@@ -467,10 +470,10 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       className={cn(
                         "h-12 rounded-2xl font-black text-sm transition-all",
                         selectedId === String(n)
-                          ? "bg-[#ffc800] text-[#0e3e3b] shadow-md"
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
                           : voted && (results[String(n)] || 0) > 0
-                            ? "bg-[#ffc800]/60 text-[#0e3e3b]"
-                            : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                            ? "bg-indigo-100 text-indigo-600"
+                            : "bg-slate-100 text-slate-400 hover:bg-slate-200"
                       )}
                     >
                       {n}
@@ -479,7 +482,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 </div>
                 {voted && scaleAvg && (
                   <div className="text-center pt-2">
-                    <span className="text-3xl font-black text-[#0e3e3b]">{scaleAvg}</span>
+                    <span className="text-3xl font-black text-indigo-600">{scaleAvg}</span>
                     <span className="text-sm font-bold text-gray-400 ml-1">/ 10 media del grupo</span>
                   </div>
                 )}
@@ -494,7 +497,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ordena con las flechas · 1 = mejor</p>
                     {rankOrder.map((m, idx) => (
                       <div key={m.profile_id} className="flex items-center gap-3 bg-white rounded-[24px] px-4 py-3 border border-black/5 shadow-sm">
-                        <span className="w-7 h-7 rounded-full bg-[#ffc800] flex items-center justify-center font-black text-sm text-[#0e3e3b] flex-shrink-0">{idx + 1}</span>
+                        <span className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center font-black text-sm text-white flex-shrink-0">{idx + 1}</span>
                         <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={36} />
                         <span className="font-black text-gray-900 text-sm flex-1">{m.profiles?.username}</span>
                         <div className="flex flex-col gap-0.5 ml-auto">
@@ -512,7 +515,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       </div>
                     ))}
                     <motion.button whileTap={{ scale: 0.98 }} onClick={voteRanking} disabled={submitting}
-                      className="h-14 rounded-full bg-[#ffc800] border border-[#ffc800] font-black text-[#0e3e3b] text-base shadow-sm flex items-center justify-center gap-2"
+                      className="h-14 rounded-[20px] bg-indigo-600 border border-indigo-600 font-black text-white text-base shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                     >
                       {submitting ? <Loader2 size={16} className="animate-spin" /> : "🏅 Confirmar ranking"}
                     </motion.button>
@@ -525,7 +528,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       if (!m) return null;
                       return (
                         <div key={r.memberId} className="flex items-center gap-3 bg-white rounded-[24px] px-4 py-3 border border-black/5 shadow-sm">
-                          <span className="w-7 h-7 rounded-full bg-[#ffc800] flex items-center justify-center font-black text-sm text-[#0e3e3b] flex-shrink-0">{idx + 1}</span>
+                          <span className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center font-black text-sm text-white flex-shrink-0">{idx + 1}</span>
                           <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={36} />
                           <span className="font-black text-gray-900 text-sm flex-1">{m.profiles?.username}</span>
                           {r.voteCount > 0 && <span className="text-xs font-black text-gray-400">avg {r.avgRank.toFixed(1)}</span>}
@@ -571,7 +574,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       </div>
                     )}
                     <textarea
-                      className="w-full border border-gray-200 rounded-2xl p-4 text-sm font-medium text-gray-800 bg-gray-50 resize-none focus:outline-none focus:border-[#14726e] transition-colors"
+                      className="w-full border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-800 bg-slate-50 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
                       rows={4}
                       maxLength={120}
                       placeholder="Escribe tu respuesta... (máx. 120 caracteres)"
@@ -583,12 +586,12 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                       <span className="text-xs text-gray-400 font-medium">{freeText.length}/120</span>
                       {!voted ? (
                         <motion.button whileTap={{ scale: 0.97 }} onClick={submitFreeAnswer} disabled={!freeText.trim() || submitting}
-                          className="bg-[#ffc800] text-[#0e3e3b] font-black px-6 py-2.5 rounded-full disabled:opacity-40 flex items-center gap-2"
+                          className="bg-indigo-600 text-white font-black px-6 py-2.5 rounded-full shadow-lg shadow-indigo-500/20 disabled:opacity-40 flex items-center gap-2"
                         >
                           {submitting ? <Loader2 size={14} className="animate-spin" /> : "Enviar"}
                         </motion.button>
                       ) : (
-                        <span className="text-sm font-black text-[#14726e]">✓ Enviada</span>
+                        <span className="text-sm font-black text-indigo-600">✓ Enviada</span>
                       )}
                     </div>
                     {voted && (
