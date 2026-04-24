@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav } from "@/components/ui";
+
+export const dynamicParams = true;
 import { MobileLayout } from "@/components/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { groupService, pollService, questionService } from "@/lib/services";

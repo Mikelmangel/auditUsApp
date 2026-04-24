@@ -6,8 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "auditus-secret-2026";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-export const maxDuration = 60; // Allow 60s for Vercel Hobby max execution
-
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get("authorization");

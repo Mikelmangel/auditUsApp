@@ -5,7 +5,6 @@ const isMobileExport = process.env.CAPACITOR_BUILD === "true";
 
 const nextConfig: NextConfig = {
   ...(isMobileExport && {
-    output: "export",
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
   }),
