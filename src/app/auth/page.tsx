@@ -61,7 +61,23 @@ export default function AuthPage() {
 
   return (
     <MobileLayout className="bg-[var(--stitch-canvas)]">
-      <div className="min-h-full flex items-center justify-center p-6 selection:bg-indigo-500/30">
+      <div className="h-full flex flex-col items-center justify-start pt-8 px-6 selection:bg-indigo-500/30 overflow-y-auto">
+        {/* Logo Header */}
+        <div className="w-full max-w-[440px] mb-8 flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--stitch-primary)] flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Zap size={24} className="text-white fill-white" />
+            </div>
+            <div>
+              <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight">
+                AuditUs
+              </h1>
+              <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                Sistema de Seguridad
+              </p>
+            </div>
+          </div>
+        </div>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

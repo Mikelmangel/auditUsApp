@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
 import { MobileLayout } from "@/components/MobileLayout";
 
+export const dynamicParams = true;
+
 import { Loader2, BellRing, Home, ChevronLeft, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -16,6 +18,18 @@ import {
 } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+
+const CATEGORY_CONFIG: Record<string, { bg: string; emoji: string; label: string }> = {
+  humor:      { bg: "from-amber-500 to-orange-600",    emoji: "😂", label: "Humor" },
+  habilidades:{ bg: "from-emerald-500 to-teal-600",    emoji: "💪", label: "Habilidades" },
+  futuro:     { bg: "from-violet-600 to-purple-700",   emoji: "🔮", label: "Futuro" },
+  atrevidas:  { bg: "from-rose-500 to-pink-600",       emoji: "🌶️", label: "Atrevidas" },
+  hipoteticas:{ bg: "from-cyan-500 to-blue-600",       emoji: "🧠", label: "Hipotéticas" },
+  vinculos:   { bg: "from-yellow-500 to-amber-600",   emoji: "💛", label: "Vínculos" },
+  eventos:    { bg: "from-fuchsia-500 to-purple-600",  emoji: "🎉", label: "Eventos" },
+  ia_custom:  { bg: "from-indigo-600 to-blue-700",     emoji: "🤖", label: "IA" },
+  general:    { bg: "from-indigo-600 to-indigo-700",    emoji: "❓", label: "General" },
+};
 
 export default function PollPage({ params }: { params: Promise<{ id: string }> }) {
   const [poll, setPoll] = useState<Poll | null>(null);
@@ -187,6 +201,26 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     if (!poll || !user) return;
     try {
       await nudgeService.createNudge(poll.id, user.id, receiverId);
+      const sender = members.find(m => m.profile_id === user.id);
+      const senderName = (sender as any)?.profiles?.username ?? 'alguien';
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` })
+        },
+        body: JSON.stringify({
+          receiverId,
+          payload: {
+            title: `¡Zumbido de ${senderName}!`,
+            body: `Te están esperando para votar en "${poll.rendered_question || poll.question}"`,
+            url: `/poll/${poll.id}`,
+          },
+        }),
+      }).catch(() => {});
       toast.success("¡Zumbido enviado!");
     } catch (e: any) { toast.error(e.message); }
   };
@@ -264,11 +298,14 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     ? (Object.entries(results).reduce((sum, [k, v]) => sum + Number(k) * v, 0) / totalVotes).toFixed(1)
     : null;
 
+  const pollCategory = poll.questions?.category || "general";
+  const cat = CATEGORY_CONFIG[pollCategory] ?? CATEGORY_CONFIG["general"];
+
   return (
     <MobileLayout
       header={
         <header
-          className="bg-indigo-600 px-5 text-center rounded-b-[32px] shadow-xl shadow-indigo-900/20"
+          className={cn("px-5 text-center rounded-b-[32px] shadow-xl shadow-indigo-900/20 bg-gradient-to-br", cat.bg)}
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)', paddingBottom: '20px' }}
         >
           <div className="flex items-center justify-between mb-3">
@@ -280,9 +317,15 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               <ChevronLeft size={20} strokeWidth={2.5} />
             </button>
 
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-1">
               <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Nueva en</span>
               <span className="text-sm font-black text-white tabular-nums">{nextQuestionTime}</span>
+              <button
+                title={`Categoría: ${cat.label}`}
+                className="text-base"
+              >
+                {cat.emoji}
+              </button>
             </div>
 
             <button

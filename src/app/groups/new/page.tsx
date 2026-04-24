@@ -94,7 +94,7 @@ export default function NewGroupPage() {
       }
       footer={<BottomNav />}
     >
-      <div className="px-5 pb-8 flex-1 max-w-[430px] mx-auto w-full pt-5">
+      <div className="px-5 pb-8 flex-1 max-w-[430px] mx-auto w-full pt-5 min-w-0">
         {/* Mode Tabs */}
         <div className="bg-white/60 backdrop-blur-md p-1 rounded-[20px] border border-slate-100 flex items-center mb-6 shadow-sm">
           <button

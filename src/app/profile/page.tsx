@@ -104,7 +104,7 @@ export default function ProfilePage() {
       header={
         <header
           className="bg-indigo-600 px-5 rounded-b-[32px] shadow-xl shadow-indigo-900/20"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)', paddingBottom: '24px' }}
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)', paddingBottom: '16px' }}
         >
           <div className="flex items-center justify-between mb-5">
             <div className="w-9 h-9" />

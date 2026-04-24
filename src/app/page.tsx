@@ -43,7 +43,7 @@ export default function Home() {
     <MobileLayout
       header={
         <header className="px-6 pt-12 pb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <div className="w-10 h-10 rounded-2xl bg-[var(--stitch-primary)] flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Zap size={20} className="text-white fill-white" />
             </div>

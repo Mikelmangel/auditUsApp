@@ -3,31 +3,52 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 
 export async function POST(req: NextRequest) {
-  webpush.setVapidDetails(
-    `mailto:${process.env.VAPID_EMAIL}`,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-  );
+  try {
+    webpush.setVapidDetails(
+      `mailto:${process.env.VAPID_EMAIL || 'test@example.com'}`,
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!
+    );
 
-  const adminSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-  const { receiverId, payload } = await req.json();
-  if (!receiverId || !payload) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const { data: subs, error } = await adminSupabase
-    .from('push_subscriptions')
-    .select('subscription')
-    .eq('user_id', receiverId);
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
-  if (error || !subs?.length) return NextResponse.json({ ok: true });
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  await Promise.allSettled(
-    subs.map(({ subscription }) =>
-      webpush.sendNotification(subscription as webpush.PushSubscription, JSON.stringify(payload))
-    )
-  );
+    const adminSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { receiverId, payload } = await req.json();
+    if (!receiverId || !payload) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-  return NextResponse.json({ ok: true });
+    const { data: subs, error } = await adminSupabase
+      .from('push_subscriptions')
+      .select('subscription')
+      .eq('user_id', receiverId);
+
+    if (error || !subs?.length) return NextResponse.json({ ok: true });
+
+    await Promise.allSettled(
+      subs.map(({ subscription }) =>
+        webpush.sendNotification(subscription as webpush.PushSubscription, JSON.stringify(payload))
+      )
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("Push send error:", err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }

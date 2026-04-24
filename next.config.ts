@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   ...(isMobileExport && {
     output: "export",
     trailingSlash: true,
+    skipTrailingSlashRedirect: true,
   }),
   turbopack: {
     root: path.resolve(__dirname),

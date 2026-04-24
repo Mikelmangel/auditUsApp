@@ -28,7 +28,7 @@ export function MobileLayout({
       )}
 
       {/* Scrollable Content Area */}
-      <main className={cn("flex-1 overflow-y-auto custom-scrollbar relative z-10", contentClassName)}>
+      <main className={cn("flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10", contentClassName)}>
         {children}
       </main>
 
