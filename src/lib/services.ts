@@ -327,7 +327,8 @@ export const pollService = {
       .from('polls')
       .select('*', { count: 'exact', head: true })
       .eq('group_id', groupId)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString());
       
     if (count && count >= 5) {
       throw new Error("Límite de 5 encuestas activas alcanzado.");

@@ -2,11 +2,11 @@ name: Automated AuditUs Cycles
 
 on:
   schedule:
-    # 07:00, 12:00, 17:00 CEST (05:00, 10:00, 15:00 UTC) - Questions
-    - cron: '0 5,10,15 * * *'
-    # 20:00 CEST (18:00 UTC) - Summary
-    - cron: '0 18 * * *'
-  workflow_dispatch: # Permite ejecución manual para pruebas
+    # Every 6h: 05,11,17,23 UTC — Questions
+    - cron: '0 5,11,17,23 * * *'
+    # Every 6h: 06,12,18,00 UTC — Summary (closes polls)
+    - cron: '0 6,12,18,0 * * *'
+  workflow_dispatch:
 
 jobs:
   automation:
