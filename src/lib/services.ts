@@ -322,11 +322,11 @@ async function updateStreakAndPoints(voterId: string) {
 
 export const pollService = {
   async createPoll(groupId: string, question: string, userId: string, pollType: QuestionMode | 'prediction' = 'poll', questionId?: string) {
-    // Check limit
+    // Check per-user limit (5 active polls across ALL groups)
     const { count } = await supabase
       .from('polls')
       .select('*', { count: 'exact', head: true })
-      .eq('group_id', groupId)
+      .eq('created_by', userId)
       .eq('is_active', true);
       
     if (count && count >= 5) {
