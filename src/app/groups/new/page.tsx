@@ -22,11 +22,23 @@ const EMOJI_GROUPS = [
 
 const ALL_EMOJIS = EMOJI_GROUPS.flatMap(g => g.icons);
 
+const LANGUAGES = [
+  { value: 'es', label: 'Español (España)', flag: '🇪🇸' },
+  { value: 'es-MX', label: 'Español (México)', flag: '🇲🇽' },
+  { value: 'en', label: 'English (US)', flag: '🇺🇸' },
+  { value: 'en-UK', label: 'English (UK)', flag: '🇬🇧' },
+  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { value: 'fr', label: 'Français', flag: '🇫🇷' },
+  { value: 'it', label: 'Italiano', flag: '🇮🇹' },
+  { value: 'pt', label: 'Português', flag: '🇧🇷' },
+];
+
 export default function NewGroupPage() {
   const [mode, setMode] = useState<"create" | "join">("create");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [emoji, setEmoji] = useState("🔮");
+  const [language, setLanguage] = useState("es");
   const [activeCategory, setActiveCategory] = useState(0);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,7 +50,7 @@ export default function NewGroupPage() {
     if (!user || !name.trim()) return;
     setLoading(true);
     try {
-      const group = await groupService.createGroup(name.trim(), user.id, description.trim() || undefined, emoji);
+      const group = await groupService.createGroup(name.trim(), user.id, description.trim() || undefined, emoji, language);
       toast.success(`¡${group.name} creado! Código: ${group.invite_code}`);
       router.push(`/groups/${group.id}`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
@@ -210,6 +222,30 @@ export default function NewGroupPage() {
                       onChange={(e) => setDescription(e.target.value)}
                       maxLength={100}
                     />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      Idioma de las preguntas
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.value}
+                          type="button"
+                          onClick={() => setLanguage(lang.value)}
+                          className={cn(
+                            "py-2.5 px-1 rounded-2xl text-center text-[10px] font-black transition-all flex flex-col items-center gap-1",
+                            language === lang.value
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                              : "bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100"
+                          )}
+                        >
+                          <span className="text-base">{lang.flag}</span>
+                          <span className="leading-tight">{lang.label.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
