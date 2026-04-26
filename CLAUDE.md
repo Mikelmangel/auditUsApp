@@ -50,6 +50,29 @@ All pages are **Client Components** (`'use client'`) because they depend on `use
 ### Mobile build
 `next.config.ts` detects `CAPACITOR_BUILD=true` and switches to `output: "export"` with `trailingSlash: true` and unoptimized images. Never use Next.js server features (API routes, middleware) in code paths that run during the mobile build.
 
+### Mobile AdMob (Android interstitial ads)
+
+Ads are shown as interstitial after a vote. The `AdMobProvider` in `layout.tsx` initializes and prepares the ad once on app mount; re-preparation happens automatically on `Dismissed` event.
+
+**Full rebuild flow after code changes:**
+```bash
+npm run build && npx cap sync android && cd android && JAVA_HOME=/snap/android-studio/209/jbr ./gradlew assembleDebug
+```
+
+Then install via ADB (located at `/home/miguel-angel/Android/Sdk/platform-tools/adb`):
+```bash
+/home/miguel-angel/Android/Sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Key files:**
+- `src/components/ads/AdMobInterstitial.tsx` — `AdMobProvider`, `showInterstitialAd()`, `INTERSTITIAL_AD_ID`
+- `src/app/poll/[id]/PollPageClient.tsx` — calls `showInterstitialAd()` after `castVote`
+- `android/app/src/main/AndroidManifest.xml` — requires `meta-data com.google.android.gms.ads.APPLICATION_ID`
+- `.env.local` — `NEXT_PUBLIC_ADMOB_APP_ID`
+- `capacitor.config.ts` — `plugins.AdMob.appId`
+
+**Debug:** filter Logcat by `[AdMob]` to see `init failed:`, `ad loaded and ready`, `ad dismissed, re-preparing...`
+
 ### Database / Migrations
 Migrations live in `supabase/migrations/` ordered by timestamp. The authoritative schema snapshot is `supabase/schema.sql`. After any migration file change, run `supabase db push`. RLS policies must use `auth.uid()` directly — never subqueries referencing the same table (causes recursion).
 

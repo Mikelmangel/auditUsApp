@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BottomNav, Avatar } from "@/components/ui";
 import { MobileLayout } from "@/components/MobileLayout";
+import { Capacitor } from "@capacitor/core";
 
 import { Loader2, BellRing, Home, ChevronLeft, Lock, ChevronUp, ChevronDown } from "lucide-react";
+import { showInterstitialAd, AdMobProvider, INTERSTITIAL_AD_ID } from "@/components/ads/AdMobInterstitial";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -123,6 +125,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       const r = await pollService.getResults(poll.id);
       setResults(r);
       toast.success("¡Voto registrado! +10 puntos");
+      if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
       setSelectedId(null);
@@ -157,6 +160,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       const rr = await pollService.getRankingResults(poll.id);
       setRankingResults(rr);
       toast.success("¡Ranking enviado! +10 puntos");
+      if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
     } finally { setSubmitting(false); }
@@ -177,6 +181,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         setFreeAnswers(answers);
       }
       toast.success("¡Respuesta enviada! +10 puntos");
+      if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
     } finally { setSubmitting(false); }

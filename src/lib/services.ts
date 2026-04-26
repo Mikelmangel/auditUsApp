@@ -32,6 +32,7 @@ export type Group = {
   created_by: string;
   member_count?: number;
   is_public?: boolean;
+  language?: string;
   created_at: string;
 };
 
@@ -161,7 +162,7 @@ export const profileService = {
 // ─────────────────────────────────────────────
 
 export const groupService = {
-  async createGroup(name: string, userId: string, description?: string, emoji = '🔮') {
+  async createGroup(name: string, userId: string, description?: string, emoji = '🔮', language = 'es') {
     const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { data, error } = await supabase
       .from('groups')
@@ -172,6 +173,7 @@ export const groupService = {
         created_by: userId,
         invite_code: inviteCode,
         member_count: 0,
+        language,
       }])
       .select()
       .single();
@@ -650,6 +652,14 @@ export const questionService = {
       modeFilter = 'poll';
     }
 
+    // Get group's language
+    const { data: group } = await supabase
+      .from('groups')
+      .select('language')
+      .eq('id', groupId)
+      .single();
+    const groupLanguage = group?.language || 'es';
+
     // Get already used questions for this group
     const { data: usedIds } = await supabase
       .from('group_poll_history')
@@ -662,6 +672,7 @@ export const questionService = {
       .from('questions')
       .select('*')
       .eq('is_active', true)
+      .eq('language', groupLanguage)
       .lte('min_members', memberCount);
 
     if (categoryFilter) {
@@ -735,6 +746,32 @@ export const nudgeService = {
       .in('id', nudgeIds);
     if (error) throw error;
   }
+};
+
+// ─────────────────────────────────────────────
+// GROUP UPGRADE SERVICE
+// ─────────────────────────────────────────────
+
+export const groupUpgradeService = {
+  async getUpgrade(groupId: string): Promise<{ ia_custom_unlocked: boolean } | null> {
+    const { data } = await supabase
+      .from('group_upgrades')
+      .select('ia_custom_unlocked')
+      .eq('group_id', groupId)
+      .single();
+    return data;
+  },
+
+  async unlockIaCustom(groupId: string): Promise<void> {
+    const { error } = await supabase
+      .from('group_upgrades')
+      .upsert([{
+        group_id: groupId,
+        ia_custom_unlocked: true,
+        unlocked_at: new Date().toISOString(),
+      }]);
+    if (error) throw error;
+  },
 };
 
 // ─────────────────────────────────────────────

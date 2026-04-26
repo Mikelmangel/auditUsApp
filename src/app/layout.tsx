@@ -56,6 +56,8 @@ export const metadata: Metadata = {
 
 import { PageTransition } from "@/components/PageTransition";
 
+import { AdMobProvider } from "@/components/ads/AdMobInterstitial";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${plusJakarta.variable} ${inter.variable}`}>
@@ -67,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="absolute top-[30%] right-[5%] w-[40%] h-[40%] rounded-full bg-cyan-500/5 blur-[80px]" />
         </div>
 
+        <AdMobProvider />
         <AuthProvider>
           <div id="app-root" className="relative z-10">
             <PageTransition>

@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     // WebView: APK carga tu web real desde Vercel
     // Users ven siempre la última versión sin resubir a stores
-    url: 'https://auditus-app.vercel.app',
+    // url: 'https://auditus-app.vercel.app',
   },
   plugins: {
     SplashScreen: {
@@ -21,6 +21,9 @@ const config: CapacitorConfig = {
     },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    AdMob: {
+      appId: process.env.NEXT_PUBLIC_ADMOB_APP_ID ?? 'ca-app-pub-6566349379255160~6333423335',
     },
   },
 };

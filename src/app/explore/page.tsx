@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/ui";
 export const dynamicParams = true;
 import { MobileLayout } from "@/components/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { groupService, pollService, questionService } from "@/lib/services";
+import { groupService, pollService, questionService, groupUpgradeService } from "@/lib/services";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 import {
   Search, Sparkles, Flame, Brain, Zap, Coffee,
-  ArrowRight, User, Loader2, Lock, HelpCircle, X, Users
+  ArrowRight, User, Loader2, Lock, HelpCircle, X
 } from "lucide-react";
 
 const CATEGORY_META: Record<string, {
@@ -165,6 +165,9 @@ export default function ExplorePage() {
   const [userGroups, setUserGroups] = useState<any[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [unlockingGroup, setUnlockingGroup] = useState<string | null>(null);
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [iaCustomUnlockedMap, setIaCustomUnlockedMap] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
   const router = useRouter();
 
@@ -295,8 +298,16 @@ export default function ExplorePage() {
                   if (!user) { toast.error("Inicia sesión para usar un pack"); return; }
                   setSelectingPack(cat);
                   setLoadingGroups(true);
-                  groupService.getMyGroups(user.id).then((g) => {
+                  groupService.getMyGroups(user.id).then(async (g) => {
                     setUserGroups(g);
+                    if (cat === 'ia_custom') {
+                      const unlockedMap: Record<string, boolean> = {};
+                      await Promise.all(g.map(async (group: any) => {
+                        const upgrade = await groupUpgradeService.getUpgrade(group.id);
+                        unlockedMap[group.id] = upgrade?.ia_custom_unlocked ?? false;
+                      }));
+                      setIaCustomUnlockedMap(unlockedMap);
+                    }
                     setLoadingGroups(false);
                   });
                 }} />
@@ -344,11 +355,17 @@ export default function ExplorePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {userGroups.map((group) => (
+                {userGroups.map((group) => {
+                  const isIaCustomLocked = selectingPack === 'ia_custom' && !iaCustomUnlockedMap[group.id];
+                  return (
                   <button
                     key={group.id}
                     onClick={async () => {
                       if (!user) return;
+                      if (isIaCustomLocked) {
+                        setUnlockingGroup(group.id);
+                        return;
+                      }
                       setLaunching(true);
                       setSelectingPack(null);
                       try {
@@ -391,9 +408,14 @@ export default function ExplorePage() {
                       <p className="font-jakarta font-extrabold text-[var(--stitch-primary)] truncate">{group.name}</p>
                       <p className="text-slate-400 text-xs">{group.member_count ?? 0} miembros</p>
                     </div>
-                    <ArrowRight size={16} className="text-slate-300" />
+                    {isIaCustomLocked ? (
+                      <Lock size={16} className="text-rose-400" />
+                    ) : (
+                      <ArrowRight size={16} className="text-slate-300" />
+                    )}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -405,6 +427,92 @@ export default function ExplorePage() {
           <Loader2 size={32} className="animate-spin text-white" />
         </div>
       )}
+
+      {/* IA Custom unlock modal */}
+      <AnimatePresence>
+        {unlockingGroup && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-[var(--stitch-canvas)] rounded-t-3xl shadow-2xl border-t border-slate-200 px-6 py-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-jakarta text-xl font-black text-[var(--stitch-primary)]">
+                  Desbloquear IA (Beta)
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Activa las preguntas de IA para este grupo
+                </p>
+              </div>
+              <button
+                onClick={() => setUnlockingGroup(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"
+              >
+                <X size={16} className="text-slate-500" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={async () => {
+                  if (!user || !unlockingGroup) return;
+                  setUnlockLoading(true);
+                  try {
+                    await groupUpgradeService.unlockIaCustom(unlockingGroup);
+                    setIaCustomUnlockedMap(prev => ({ ...prev, [unlockingGroup]: true }));
+                    toast.success("¡Desbloqueado! Ya puedes usar IA (Beta) en este grupo.");
+                    const groupId = unlockingGroup;
+                    setUnlockingGroup(null);
+                    // Auto-launch poll after unlock
+                    const group = userGroups.find((g: any) => g.id === groupId);
+                    if (!group) { setUnlockLoading(false); return; }
+                    setLaunching(true);
+                    const members = await groupService.getGroupMembers(groupId);
+                    if (members.length < 2) {
+                      toast.error("Necesitas al menos 2 miembros en el grupo.");
+                      setLaunching(false); setUnlockLoading(false); return;
+                    }
+                    const q = await questionService.getRandomQuestion(groupId, members.length, 'ia_custom');
+                    if (!q) {
+                      toast.error("No hay preguntas de IA para este grupo.");
+                      setLaunching(false); setUnlockLoading(false); return;
+                    }
+                    const shuffled = [...members].sort(() => Math.random() - Math.random());
+                    const rendered = questionService.renderQuestion(q.text, {
+                      groupName: group.name,
+                      memberA: shuffled[0]?.profiles?.username,
+                      memberB: shuffled[1]?.profiles?.username,
+                      memberCount: members.length,
+                    });
+                    const poll = await pollService.createPoll(groupId, rendered, user.id, q.mode, q.id);
+                    await supabase.from("group_poll_history").insert([{ group_id: groupId, question_id: q.id }]);
+                    toast.success("¡Encuesta lanzada!");
+                    router.push(`/poll/${poll.id}`);
+                  } catch (e: any) {
+                    toast.error(e.message || "Error al desbloquear");
+                  } finally {
+                    setUnlockLoading(false);
+                  }
+                }}
+                disabled={unlockLoading}
+                className="w-full bg-indigo-600 text-white rounded-2xl py-4 font-bold text-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {unlockLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                Desbloquear gratis
+              </button>
+              <button
+                onClick={() => setUnlockingGroup(null)}
+                className="w-full bg-slate-100 text-slate-500 rounded-2xl py-3 font-semibold text-sm hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </MobileLayout>
   );
 }
