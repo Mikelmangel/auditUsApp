@@ -1,0 +1,114 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+
+export default function ContactPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f3ede2]">
+      {/* Header */}
+      <header className="bg-[#0e3e3b] text-white py-12 px-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <Link href="/landing" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">A</span>
+              </div>
+              <span className="font-extrabold text-white text-lg">AuditUs</span>
+            </Link>
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight">Contact Us</h1>
+          <p className="text-[#14726e] mt-2">We&apos;d love to hear from you.</p>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="max-w-3xl mx-auto px-6 py-12">
+        {!submitted ? (
+          <div className="bg-white rounded-3xl p-8 shadow-lg border border-[#14726e]/10">
+            <h2 className="text-2xl font-extrabold text-[#0e3e3b] mb-2">Send us a message</h2>
+            <p className="text-[#6b7280] mb-8">Fill out the form below and we&apos;ll get back to you within 48 hours.</p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-[#0e3e3b] mb-2">Your name</label>
+                <Input
+                  placeholder="María García"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="h-12 rounded-xl border-[#14726e]/20 bg-[#f3ede2]/50 text-[#0e3e3b] placeholder:text-[#6b7280]/50"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#0e3e3b] mb-2">Email address</label>
+                <Input
+                  type="email"
+                  placeholder="maria@example.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="h-12 rounded-xl border-[#14726e]/20 bg-[#f3ede2]/50 text-[#0e3e3b] placeholder:text-[#6b7280]/50"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#0e3e3b] mb-2">What&apos;s on your mind?</label>
+                <Textarea
+                  placeholder="Tell us about a bug, feature request, or just say hi..."
+                  value={form.message}
+                  onChange={(e) => setForm({ ...form, message: e.target.value })}
+                  className="min-h-[140px] rounded-xl border-[#14726e]/20 bg-[#f3ede2]/50 text-[#0e3e3b] placeholder:text-[#6b7280]/50 resize-none"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full h-14 bg-[#f36b2d] hover:bg-[#e55a1f] text-white rounded-xl font-bold text-base transition-all hover:scale-[1.02]">
+                Send message
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <div className="bg-[#14726e]/10 border border-[#14726e]/30 rounded-3xl p-10 text-center">
+            <div className="w-16 h-16 bg-[#14726e] rounded-full flex items-center justify-center mx-auto mb-5">
+              <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-extrabold text-[#0e3e3b] mb-2">Message sent!</h2>
+            <p className="text-[#6b7280] mb-6">Thanks for reaching out. We&apos;ll get back to you within 48 hours.</p>
+            <button
+              onClick={() => { setSubmitted(false); setForm({ name: '', email: '', message: '' }); }}
+              className="text-[#14726e] font-bold hover:underline"
+            >
+              Send another message
+            </button>
+          </div>
+        )}
+
+        {/* Alternative contact */}
+        <div className="mt-10 text-center">
+          <p className="text-[#6b7280] text-sm">Prefer email directly?</p>
+          <a href="mailto:hello@auditus.fun" className="text-[#14726e] font-bold text-lg hover:underline">hello@auditus.fun</a>
+        </div>
+
+        {/* Back link */}
+        <div className="mt-12 pt-8 border-t border-[#14726e]/10">
+          <Link href="/landing" className="text-[#14726e] font-bold hover:underline">
+            &larr; Back to AuditUs
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}

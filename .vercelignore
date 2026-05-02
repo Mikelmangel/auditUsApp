@@ -1,0 +1,10 @@
+node_modules/
+.next/
+android/
+ios/
+.git/
+*.apk
+*.aab
+*.keystore
+*.jks
+out/

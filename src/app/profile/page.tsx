@@ -21,8 +21,11 @@ const RARITY_BADGE: Record<string, { cls: string; label: string }> = {
   legendary: { cls: "text-amber-500",  label: "Legendario" },
 };
 
+import { useLanguage } from "@/hooks/useLanguage";
+
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profile,  setProfile]  = useState<Profile | null>(null);
   const [badges,   setBadges]   = useState<Badge[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -115,7 +118,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center justify-between mb-5">
             <div className="w-9 h-9" />
-            <span className="font-inter text-[9px] font-black text-white/40 uppercase tracking-widest">Mi perfil</span>
+            <span className="font-inter text-[9px] font-black text-white/40 uppercase tracking-widest">{t.profile.title}</span>
             <button
               onClick={() => setEditing(v => !v)}
               className={cn(
@@ -125,7 +128,7 @@ export default function ProfilePage() {
                   : "bg-white/10 border-white/10 text-white/70"
               )}
             >
-              {editing ? "Cancelar" : "Editar"}
+              {editing ? t.profile.cancel : t.profile.edit}
             </button>
           </div>
 
@@ -178,7 +181,7 @@ export default function ProfilePage() {
                 {profile?.username}
               </h2>
               <p className="font-inter text-[10px] font-black text-white/40 uppercase tracking-widest mt-1">
-                {profile?.bio || "Sin biografía"}
+                {profile?.bio || t.profile.noBio}
               </p>
             </div>
           </div>
@@ -193,7 +196,7 @@ export default function ProfilePage() {
           {editing ? (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Seudónimo</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{t.profile.pseudonym}</label>
                 <input
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 font-black text-slate-900 tracking-tight text-sm focus:outline-none focus:border-indigo-500 transition-all"
                   value={username}
@@ -203,17 +206,17 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Biografía</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{t.profile.bio}</label>
                 <textarea
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm font-medium text-slate-800 resize-none min-h-[80px] focus:outline-none focus:border-indigo-500 transition-all font-inter"
                   value={bio}
                   onChange={e => setBio(e.target.value)}
-                  placeholder="Cuéntanos algo sobre ti..."
+                  placeholder={t.profile.noBio}
                   maxLength={120}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Idioma de la app</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">{t.profile.language}</label>
                 <div className="grid grid-cols-4 gap-2">
                   {LANGUAGES.map((lang) => (
                     <button
@@ -234,7 +237,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <Button onClick={save} loading={saving} className="h-13 mt-2">
-                Guardar cambios
+                {t.profile.save}
               </Button>
             </div>
           ) : (
@@ -242,18 +245,18 @@ export default function ProfilePage() {
               <StatBadge
                 icon={<Flame size={20} className="text-amber-500 fill-amber-500" />}
                 value={profile?.current_streak || 0}
-                label="Racha"
+                label={t.profile.streak}
               />
               <StatBadge
                 icon={<Zap size={20} className="text-indigo-500 fill-indigo-500" />}
                 value={profile?.points || 0}
-                label="Puntos"
+                label={t.profile.points}
                 accent
               />
               <StatBadge
                 icon={<Trophy size={20} className="text-indigo-400" />}
                 value={badges.length}
-                label="Logros"
+                label={t.profile.badges}
               />
             </div>
           )}
@@ -262,7 +265,7 @@ export default function ProfilePage() {
         {/* Badges */}
         {badges.length > 0 && (
           <div>
-            <SectionTitle>Reconocimientos</SectionTitle>
+            <SectionTitle>{t.profile.recognitions}</SectionTitle>
             <div className="grid grid-cols-2 gap-3">
               {badges.map((b, i) => {
                 const rarity = RARITY_BADGE[b.rarity] || RARITY_BADGE.common;

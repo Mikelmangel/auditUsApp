@@ -8,9 +8,11 @@ import { groupService, pollService, profileService, type Group, type Profile } f
 import { motion } from "framer-motion";
 import { Flame, MessageSquare, Plus, Zap } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -18,7 +20,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { if (!authLoading) setLoading(false); return; }
+    if (!authLoading && !user) {
+      router.push("/landing");
+      return;
+    }
+    if (!user) return;
     Promise.all([
       groupService.getMyGroups(user.id),
       profileService.getProfile(user.id),
