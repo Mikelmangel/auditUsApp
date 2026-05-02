@@ -12,6 +12,7 @@ import { Camera, ChevronRight, Flame, Heart, LogOut, Star, Trophy, Zap } from "l
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { LANGUAGES } from "@/lib/constants";
 
 const RARITY_BADGE: Record<string, { cls: string; label: string }> = {
   common:    { cls: "text-slate-400",  label: "Común" },
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   const [editing,  setEditing]  = useState(false);
   const [username, setUsername] = useState("");
   const [bio,      setBio]      = useState("");
+  const [appLanguage, setAppLanguage] = useState("es");
   const [saving,   setSaving]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -43,6 +45,7 @@ export default function ProfilePage() {
       setBadges(b);
       setUsername(p?.username || "");
       setBio(p?.bio || "");
+      setAppLanguage(p?.app_language || "es");
       setLoading(false);
     });
   }, [user]);
@@ -81,7 +84,11 @@ export default function ProfilePage() {
     if (!user || !username.trim()) return;
     setSaving(true);
     try {
-      const updated = await profileService.updateProfile(user.id, { username: username.trim(), bio: bio.trim() });
+      const updated = await profileService.updateProfile(user.id, { 
+        username: username.trim(), 
+        bio: bio.trim(),
+        app_language: appLanguage
+      });
       setProfile(updated);
       setEditing(false);
       toast.success("Perfil actualizado");
@@ -205,7 +212,28 @@ export default function ProfilePage() {
                   maxLength={120}
                 />
               </div>
-              <Button onClick={save} loading={saving} className="h-13">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Idioma de la app</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.value}
+                      type="button"
+                      onClick={() => setAppLanguage(lang.value)}
+                      className={cn(
+                        "py-2.5 px-1 rounded-2xl text-center text-[10px] font-black transition-all flex flex-col items-center gap-1",
+                        appLanguage === lang.value
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                          : "bg-slate-50 text-slate-500 border border-slate-100 hover:bg-slate-100"
+                      )}
+                    >
+                      <span className="text-base">{lang.flag}</span>
+                      <span className="leading-tight">{lang.label.split(' ')[0]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Button onClick={save} loading={saving} className="h-13 mt-2">
                 Guardar cambios
               </Button>
             </div>

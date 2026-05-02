@@ -22,16 +22,7 @@ const EMOJI_GROUPS = [
 
 const ALL_EMOJIS = EMOJI_GROUPS.flatMap(g => g.icons);
 
-const LANGUAGES = [
-  { value: 'es', label: 'Español (España)', flag: '🇪🇸' },
-  { value: 'es-MX', label: 'Español (México)', flag: '🇲🇽' },
-  { value: 'en', label: 'English (US)', flag: '🇺🇸' },
-  { value: 'en-UK', label: 'English (UK)', flag: '🇬🇧' },
-  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { value: 'fr', label: 'Français', flag: '🇫🇷' },
-  { value: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { value: 'pt', label: 'Português', flag: '🇧🇷' },
-];
+import { LANGUAGES } from "@/lib/constants";
 
 export default function NewGroupPage() {
   const [mode, setMode] = useState<"create" | "join">("create");

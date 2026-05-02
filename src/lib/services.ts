@@ -10,6 +10,7 @@ export type Profile = {
   avatar_url?: string;
   full_name?: string;
   bio?: string;
+  app_language?: string;
   points: number;
   current_streak: number;
   last_voted_at?: string;
@@ -126,7 +127,7 @@ export const profileService = {
     return data;
   },
 
-  async updateProfile(userId: string, updates: Partial<Pick<Profile, 'username' | 'full_name' | 'bio' | 'avatar_url'>>) {
+  async updateProfile(userId: string, updates: Partial<Pick<Profile, 'username' | 'full_name' | 'bio' | 'avatar_url' | 'app_language'>>) {
     const { data, error } = await supabase
       .from('profiles')
       .update({ ...updates, updated_at: new Date().toISOString() })
