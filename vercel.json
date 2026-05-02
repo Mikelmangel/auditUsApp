@@ -1,5 +1,4 @@
 {
-  "output": "export",
   "trailingSlash": true,
   "skipTrailingSlashRedirect": true,
   "images": {
