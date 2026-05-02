@@ -31,15 +31,19 @@ export function Avatar({
   );
 }
 
+import { useLanguage } from "@/hooks/useLanguage";
+
 /* ── BottomNav ── */
 export function BottomNav({ className }: { className?: string }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
+  
   const items = [
-    { id: 'all', label: 'Home', icon: Home, path: '/' },
-    { id: 'explore', label: 'Explore', icon: Search, path: '/explore' },
+    { id: 'all', label: t.nav.home, icon: Home, path: '/' },
+    { id: 'explore', label: t.nav.explore, icon: Search, path: '/explore' },
     { id: 'connect', label: 'Connect', icon: Users, path: '/groups/new' },
     { id: 'ranking', label: 'Ranking', icon: Trophy, path: '/leaderboard' },
-    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
+    { id: 'profile', label: t.nav.profile, icon: User, path: '/profile' },
   ];
 
   return (

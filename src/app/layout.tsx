@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "sonner";
 import { NudgeListener } from "@/components/NudgeListener";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Geist } from "next/font/google";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -57,10 +57,15 @@ export const metadata: Metadata = {
 import { PageTransition } from "@/components/PageTransition";
 
 import { AdMobProvider } from "@/components/ads/AdMobInterstitial";
+import { cn } from "@/lib/utils";
+import { LanguageProvider } from "@/hooks/useLanguage";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${plusJakarta.variable} ${inter.variable}`}>
+    <html lang="es" className={cn(plusJakarta.variable, inter.variable, "font-sans", geist.variable)}>
       <body className="bg-[var(--bg)] antialiased overscroll-none" suppressHydrationWarning>
         {/* Living Background Aura Orbs (V3 style) */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden opacity-40">
@@ -71,27 +76,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <AdMobProvider />
         <AuthProvider>
-          <div id="app-root" className="relative z-10">
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </div>
-          <NudgeListener />
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: "rgba(10, 10, 10, 0.8)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#ffffff",
-                borderRadius: 16,
-                fontSize: 14,
-                fontWeight: 600,
-                boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-              },
-            }}
-          />
+          <LanguageProvider>
+            <div id="app-root" className="relative z-10">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </div>
+            <NudgeListener />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                style: {
+                  background: "rgba(10, 10, 10, 0.8)",
+                  backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#ffffff",
+                  borderRadius: 16,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                },
+              }}
+            />
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>
