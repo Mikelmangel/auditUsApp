@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { AdMob, InterstitialAdPluginEvents } from '@capacitor-community/admob';
+import { toast } from 'sonner';
 
 // Production: ca-app-pub-6566349379255160/8712694181
 // Test ID (Google always-available): use during debug/testing
@@ -27,6 +28,7 @@ function prepareAd(): Promise<void> {
     })
     .catch((e) => {
       console.warn('[AdMob] prepare failed:', e);
+      toast.error(`[AdMob Prep Error]: ${e.message || JSON.stringify(e)}`);
     })
     .finally(() => {
       currentPrepare = null;
@@ -41,10 +43,14 @@ export function AdMobProvider() {
 
     if (!initPromise) {
       console.log('[AdMob] initializing on native platform...');
+      toast('[AdMob] Init started');
       
-      initPromise = AdMob.initialize()
+      initPromise = AdMob.initialize({
+        initializeForTesting: true
+      })
         .then(() => {
           console.log('[AdMob] initialized OK');
+          toast.success('[AdMob] Init OK');
 
           // Add listeners
           AdMob.addListener(InterstitialAdPluginEvents.Loaded, () => {
@@ -56,10 +62,12 @@ export function AdMobProvider() {
           });
           AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, (err) => {
             console.error('[AdMob] FailedToShow:', err);
+            toast.error(`[AdMob Show Error]: ${err.message || JSON.stringify(err)}`);
             prepareAd();
           });
           AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (err) => {
             console.error('[AdMob] FailedToLoad:', err);
+            toast.error(`[AdMob Load Error]: ${err.message || JSON.stringify(err)}`);
           });
 
           // Prepare initial ad
@@ -67,6 +75,7 @@ export function AdMobProvider() {
         })
         .catch((e) => {
           console.error('[AdMob] init failed:', e);
+          toast.error(`[AdMob Init Error]: ${e.message || JSON.stringify(e)}`);
           initPromise = null; // allow retrying
         });
     }
@@ -76,10 +85,14 @@ export function AdMobProvider() {
 }
 
 export async function showInterstitialAd(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!Capacitor.isNativePlatform()) {
+    toast.error('Capacitor.isNativePlatform() is false');
+    return;
+  }
 
   if (!initPromise) {
     console.warn('[AdMob] plugin not initialized, skipping ad');
+    toast.error('[AdMob] InitPromise is missing');
     return;
   }
 
@@ -88,11 +101,13 @@ export async function showInterstitialAd(): Promise<void> {
 
   if (!adReady) {
     console.log('[AdMob] waiting for prepare...');
+    toast('[AdMob] Waiting for ad to prepare...');
     await prepareAd();
   }
 
   if (!adReady) {
     console.warn('[AdMob] ad unavailable, skipping');
+    toast.error('[AdMob] Ad still unavailable after prepare');
     return;
   }
 
@@ -100,8 +115,9 @@ export async function showInterstitialAd(): Promise<void> {
     adReady = false;
     console.log('[AdMob] showing interstitial...');
     await AdMob.showInterstitial();
-  } catch (e) {
+  } catch (e: any) {
     console.error('[AdMob] show failed:', e);
+    toast.error(`[AdMob Show Exception]: ${e.message || JSON.stringify(e)}`);
     // Suppress throwing here so we don't break UI flow
     prepareAd();
   }
