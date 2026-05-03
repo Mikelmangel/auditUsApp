@@ -90,8 +90,8 @@ export default function PrivacyPage() {
         </div>
 
         {/* Back link */}
-        <div className="mt-12 pt-8 border-t border-[#14726e]/10">
-          <Link href="/landing" className="text-[#14726e] font-bold hover:underline">
+        <div className="mt-12 pt-8 border-t border-indigo-100">
+          <Link href="/landing" className="text-[#4338CA] font-bold hover:underline">
             &larr; Back to AuditUs
           </Link>
         </div>
