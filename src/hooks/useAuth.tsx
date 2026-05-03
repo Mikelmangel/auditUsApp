@@ -23,8 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
       setLoading(false);
       
-      if (!currentUser && !pathname.startsWith('/auth')) {
-        router.push('/auth');
+      const isPublicPath = pathname.startsWith('/auth') || pathname.startsWith('/landing');
+      
+      if (!currentUser && !isPublicPath) {
+        router.push('/landing'); // Redirect to landing by default if not logged in
       }
     });
 
@@ -34,8 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
       setLoading(false);
       
-      if (!currentUser && !pathname.startsWith('/auth')) {
-        router.push('/auth');
+      const isPublicPath = pathname.startsWith('/auth') || pathname.startsWith('/landing');
+      
+      if (!currentUser && !isPublicPath) {
+        router.push('/landing');
       } else if (currentUser && pathname.startsWith('/auth')) {
         router.push('/');
       }

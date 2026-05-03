@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 
 const fadeUp = {
@@ -40,30 +39,30 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3ede2] overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] overflow-x-hidden">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#14726e] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-extrabold text-[#0e3e3b] text-lg tracking-tight">AuditUs</span>
+          <span className="font-extrabold text-[#111827] text-lg tracking-tight">AuditUs</span>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/landing/privacy" className="text-sm text-[#6b7280] hover:text-[#14726e] transition-colors font-medium">Privacy</Link>
-          <Link href="/landing/terms" className="text-sm text-[#6b7280] hover:text-[#14726e] transition-colors font-medium">Terms</Link>
-          <Link href="/landing/contact" className="text-sm text-[#6b7280] hover:text-[#14726e] transition-colors font-medium">Contact</Link>
+          <Link href="/landing/privacy" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Privacy</Link>
+          <Link href="/landing/terms" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Terms</Link>
+          <Link href="/landing/contact" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Contact</Link>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="relative px-6 pt-8 pb-16 text-center overflow-hidden">
         {/* Decorative blobs */}
-        <div className="absolute top-10 left-1/4 w-64 h-64 bg-[#ffc800]/10 rounded-full blur-3xl" />
-        <div className="absolute top-20 right-1/4 w-48 h-48 bg-[#f36b2d]/10 rounded-full blur-3xl" />
+        <div className="absolute top-10 left-1/4 w-64 h-64 bg-[#4338CA]/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 right-1/4 w-48 h-48 bg-[#7F65D0]/10 rounded-full blur-3xl" />
 
         <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible" className="inline-block mb-4">
-          <Badge variant="outline" className="border-[#14726e] text-[#14726e] bg-[#14726e]/5 px-4 py-1.5 text-xs font-bold tracking-wide">
+          <Badge variant="outline" className="border-[#4338CA] text-[#4338CA] bg-[#4338CA]/5 px-4 py-1.5 text-xs font-bold tracking-wide">
             {t.landing.hero.badge}
           </Badge>
         </motion.div>
@@ -73,11 +72,11 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-5xl md:text-7xl font-extrabold text-[#0e3e3b] leading-[1.05] tracking-tight mb-6"
+          className="text-5xl md:text-7xl font-extrabold text-[#111827] leading-[1.05] tracking-tight mb-6"
         >
           {t.landing.hero.title}
           <br />
-          <span className="text-[#f36b2d]">{t.landing.hero.titleAccent}</span>
+          <span className="text-[#4338CA]">{t.landing.hero.titleAccent}</span>
         </motion.h1>
 
         <motion.p
@@ -98,13 +97,13 @@ export default function LandingPage() {
           animate="visible"
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
         >
-          <Button className="bg-[#0e3e3b] hover:bg-[#14726e] text-white gap-3 h-14 px-6 rounded-2xl font-bold text-base transition-all hover:scale-105">
+          <Button className="bg-[#4338CA] hover:bg-[#3730a3] text-white gap-3 h-14 px-6 rounded-2xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-indigo-500/30">
             <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
             </svg>
             {t.landing.hero.ctaApp}
           </Button>
-          <Button className="bg-[#0e3e3b] hover:bg-[#14726e] text-white gap-3 h-14 px-6 rounded-2xl font-bold text-base transition-all hover:scale-105">
+          <Button className="bg-[#4338CA] hover:bg-[#3730a3] text-white gap-3 h-14 px-6 rounded-2xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-indigo-500/30">
             <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 20.5v-17c0-.59.34-1.11.84-1.35L13.69 12l-9.85 9.85C3.34 21.61 3 21.09 3 20.5zm16.5-1.5l-1.32-1.32-1.92-1.92-1.41 1.41 1.41 1.41-1.51 1.51 1.51 1.51 1.51-1.51 1.51 1.51-1.51 1.51-1.51-1.51-1.41 1.41 1.41 1.41 1.92-1.92 1.32-1.32 1.92-1.92-1.51-1.51-1.51 1.51z"/>
             </svg>
@@ -122,22 +121,22 @@ export default function LandingPage() {
         >
           <motion.div variants={float} animate="animate" className="relative">
             {/* Phone frame 1 */}
-            <div className="w-48 h-96 bg-[#0e3e3b] rounded-[3rem] p-2 shadow-2xl">
+            <div className="w-48 h-96 bg-[#111827] rounded-[3rem] p-2 shadow-2xl shadow-indigo-500/20">
               <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
-                <div className="absolute top-0 left-0 right-0 h-14 bg-[#14726e] flex items-end px-5 pb-2">
+                <div className="absolute top-0 left-0 right-0 h-14 bg-[#4338CA] flex items-end px-5 pb-2">
                   <span className="text-white text-xs font-bold">AuditUs</span>
                 </div>
                 <div className="pt-16 px-4 space-y-3">
-                  <div className="bg-[#f3ede2] rounded-xl p-3">
-                    <p className="text-xs font-semibold text-[#0e3e3b]">Who in your group would survive a zombie apocalypse?</p>
+                  <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#e5e7eb]">
+                    <p className="text-xs font-semibold text-[#111827]">Who in your group would survive a zombie apocalypse?</p>
                     <div className="flex gap-1 mt-2">
-                      <div className="h-5 w-12 bg-[#14726e]/20 rounded-full" />
-                      <div className="h-5 w-12 bg-[#f36b2d]/20 rounded-full" />
-                      <div className="h-5 w-12 bg-[#ffc800]/20 rounded-full" />
+                      <div className="h-5 w-12 bg-[#4338CA]/20 rounded-full" />
+                      <div className="h-5 w-12 bg-[#7F65D0]/20 rounded-full" />
+                      <div className="h-5 w-12 bg-[#BA528E]/20 rounded-full" />
                     </div>
                   </div>
-                  <div className="bg-[#14726e]/5 rounded-xl p-3 border border-[#14726e]/20">
-                    <p className="text-[10px] text-[#14726e] font-bold mb-1">75% voted</p>
+                  <div className="bg-[#4338CA]/5 rounded-xl p-3 border border-[#4338CA]/20">
+                    <p className="text-[10px] text-[#4338CA] font-bold mb-1">75% voted</p>
                     <p className="text-xs text-[#6b7280]">María would make it. Obviously.</p>
                   </div>
                 </div>
@@ -147,7 +146,7 @@ export default function LandingPage() {
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -top-4 -right-4 bg-[#ffc800] text-[#0e3e3b] text-[10px] font-extrabold px-3 py-1.5 rounded-full shadow-lg"
+              className="absolute -top-4 -right-4 bg-[#BA528E] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-full shadow-lg"
             >
               Day 47 streak!
             </motion.div>
@@ -160,9 +159,9 @@ export default function LandingPage() {
             style={{ animationDelay: '0.5s' }}
           >
             {/* Phone frame 2 */}
-            <div className="w-52 h-[26rem] bg-[#f36b2d] rounded-[3rem] p-2 shadow-2xl shadow-[#f36b2d]/30">
+            <div className="w-52 h-[26rem] bg-[#4338CA] rounded-[3rem] p-2 shadow-2xl shadow-indigo-500/30">
               <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
-                <div className="absolute top-0 left-0 right-0 h-14 bg-[#f36b2d] flex items-end px-5 pb-2">
+                <div className="absolute top-0 left-0 right-0 h-14 bg-[#7F65D0] flex items-end px-5 pb-2">
                   <span className="text-white text-xs font-bold">Leaderboard</span>
                 </div>
                 <div className="pt-16 px-4 space-y-2.5">
@@ -171,15 +170,15 @@ export default function LandingPage() {
                     { name: 'Alex', pts: '2,180', streak: '32', avatar: 'A' },
                     { name: 'Javi', pts: '1,920', streak: '18', avatar: 'J' },
                   ].map((user, i) => (
-                    <div key={user.name} className={`bg-[#f3ede2] rounded-xl p-3 flex items-center gap-3 ${i === 0 ? 'ring-2 ring-[#ffc800]' : ''}`}>
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${i === 0 ? 'bg-[#ffc800]' : i === 1 ? 'bg-[#6b7280]' : 'bg-[#f36b2d]/60'}`}>
+                    <div key={user.name} className={`bg-[#F8FAFC] rounded-xl p-3 flex items-center gap-3 ${i === 0 ? 'ring-2 ring-[#BA528E]' : ''}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${i === 0 ? 'bg-[#BA528E]' : i === 1 ? 'bg-[#6b7280]' : 'bg-[#7F65D0]/60'}`}>
                         {user.avatar}
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-bold text-[#0e3e3b]">{user.name}</p>
+                        <p className="text-xs font-bold text-[#111827]">{user.name}</p>
                         <p className="text-[10px] text-[#6b7280]">{user.streak} day streak</p>
                       </div>
-                      <span className="text-xs font-extrabold text-[#14726e]">{user.pts}</span>
+                      <span className="text-xs font-extrabold text-[#4338CA]">{user.pts}</span>
                     </div>
                   ))}
                 </div>
@@ -189,7 +188,7 @@ export default function LandingPage() {
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-              className="absolute -top-3 -left-5 bg-[#14726e] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-full shadow-lg"
+              className="absolute -top-3 -left-5 bg-[#4338CA] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-full shadow-lg"
             >
               #1 this week!
             </motion.div>
@@ -206,7 +205,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e3e3b] mb-4 tracking-tight">{t.landing.features.title}</h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] mb-4 tracking-tight">{t.landing.features.title}</h2>
           <p className="text-[#6b7280] text-lg max-w-md mx-auto">{t.landing.features.desc}</p>
         </motion.div>
 
@@ -223,7 +222,7 @@ export default function LandingPage() {
               ),
               title: t.landing.features.step1.title,
               desc: t.landing.features.step1.desc,
-              color: 'bg-[#14726e]/10 text-[#14726e]',
+              color: 'bg-[#4338CA]/10 text-[#4338CA]',
             },
             {
               icon: (
@@ -235,7 +234,7 @@ export default function LandingPage() {
               ),
               title: t.landing.features.step2.title,
               desc: t.landing.features.step2.desc,
-              color: 'bg-[#f36b2d]/10 text-[#f36b2d]',
+              color: 'bg-[#7F65D0]/15 text-[#7F65D0]',
             },
             {
               icon: (
@@ -245,7 +244,7 @@ export default function LandingPage() {
               ),
               title: t.landing.features.step3.title,
               desc: t.landing.features.step3.desc,
-              color: 'bg-[#ffc800]/20 text-[#b8860b]',
+              color: 'bg-[#BA528E]/15 text-[#BA528E]',
             },
           ].map((feature, i) => (
             <motion.div
@@ -255,12 +254,12 @@ export default function LandingPage() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.15, duration: 0.5 }}
             >
-              <Card className="border-0 shadow-lg rounded-3xl overflow-hidden">
+              <Card className="border border-[#e5e7eb] shadow-lg rounded-3xl overflow-hidden hover:shadow-xl transition-shadow">
                 <CardContent className="p-8 text-center">
                   <div className={`inline-flex w-16 h-16 rounded-2xl items-center justify-center mb-5 ${feature.color}`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-extrabold text-[#0e3e3b] mb-3">{feature.title}</h3>
+                  <h3 className="text-xl font-extrabold text-[#111827] mb-3">{feature.title}</h3>
                   <p className="text-[#6b7280] leading-relaxed">{feature.desc}</p>
                 </CardContent>
               </Card>
@@ -270,7 +269,7 @@ export default function LandingPage() {
       </section>
 
       {/* Social proof */}
-      <section className="px-6 py-16 bg-[#0e3e3b]">
+      <section className="px-6 py-16 bg-[#111827]">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -279,15 +278,15 @@ export default function LandingPage() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">Loved by friend groups everywhere</h2>
-            <p className="text-[#14726e] text-lg">Real people. Real friendships. Real drama.</p>
+            <p className="text-[#7F65D0] text-lg">Real people. Real friendships. Real drama.</p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {[
-              { quote: 'Found out I was my group\'s backup plan for everything. Thanks AuditUs.', name: '— Laura, 28', bg: 'bg-[#14726e]/20' },
-              { quote: 'The "who would you trust with your life" question got intense fast.', name: '— Dani, 24', bg: 'bg-[#f36b2d]/20' },
-              { quote: 'My streak is 89 days. I don\'t miss.', name: '— Mike, 31', bg: 'bg-[#ffc800]/20' },
-              { quote: 'Javi thought he was the group\'s favorite. The results said otherwise.', name: '— Cris, 26', bg: 'bg-[#14726e]/20' },
+              { quote: 'Found out I was my group\'s backup plan for everything. Thanks AuditUs.', name: '— Laura, 28', bg: 'bg-[#4338CA]/20' },
+              { quote: 'The "who would you trust with your life" question got intense fast.', name: '— Dani, 24', bg: 'bg-[#7F65D0]/20' },
+              { quote: 'My streak is 89 days. I don\'t miss.', name: '— Mike, 31', bg: 'bg-[#BA528E]/20' },
+              { quote: 'Javi thought he was the group\'s favorite. The results said otherwise.', name: '— Cris, 26', bg: 'bg-[#4338CA]/20' },
             ].map((review, i) => (
               <motion.div
                 key={i}
@@ -298,7 +297,7 @@ export default function LandingPage() {
               >
                 <Card className={`${review.bg} border-0 rounded-3xl`}>
                   <CardContent className="p-7">
-                    <p className="text-[#0e3e3b] text-lg font-medium leading-relaxed mb-4">&ldquo;{review.quote}&rdquo;</p>
+                    <p className="text-[#111827] text-lg font-medium leading-relaxed mb-4">&ldquo;{review.quote}&rdquo;</p>
                     <p className="text-[#6b7280] text-sm font-bold">{review.name}</p>
                   </CardContent>
                 </Card>
@@ -317,7 +316,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6 }}
           className="max-w-lg mx-auto"
         >
-          <h2 className="text-4xl md:text-5xl font-extrabold text-[#0e3e3b] mb-5 tracking-tight">{t.landing.cta.title}</h2>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-[#111827] mb-5 tracking-tight">{t.landing.cta.title}</h2>
           <p className="text-[#6b7280] text-lg mb-8">{t.landing.cta.desc}</p>
 
           {!submitted ? (
@@ -327,10 +326,10 @@ export default function LandingPage() {
                 placeholder={t.landing.cta.input}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-14 rounded-2xl bg-white border-[#14726e]/20 text-[#0e3e3b] placeholder:text-[#6b7280]/50 text-base font-medium"
+                className="h-14 rounded-2xl bg-white border-[#e5e7eb] text-[#111827] placeholder:text-[#6b7280]/50 text-base font-medium"
                 required
               />
-              <Button type="submit" className="h-14 bg-[#f36b2d] hover:bg-[#e55a1f] text-white rounded-2xl font-bold text-base px-8 transition-all hover:scale-105">
+              <Button type="submit" className="h-14 bg-[#BA528E] hover:bg-[#a0457a] text-white rounded-2xl font-bold text-base px-8 transition-all hover:scale-105 shadow-lg shadow-rose-500/30">
                 {t.landing.cta.btn}
               </Button>
             </form>
@@ -338,29 +337,29 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-[#14726e]/10 border border-[#14726e]/30 rounded-2xl p-6 max-w-md mx-auto"
+              className="bg-[#4338CA]/10 border border-[#4338CA]/30 rounded-2xl p-6 max-w-md mx-auto"
             >
-              <p className="text-[#14726e] font-bold text-lg">{t.landing.cta.success}</p>
+              <p className="text-[#4338CA] font-bold text-lg">{t.landing.cta.success}</p>
               <p className="text-[#6b7280] text-sm mt-1">{t.landing.cta.successDesc}</p>
             </motion.div>
           )}
 
           <div className="flex items-center justify-center gap-6 mt-8">
             <div className="flex items-center gap-1.5">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#14726e]" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#4338CA]" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                 <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
               <span className="text-sm text-[#6b7280] font-medium">Free forever</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#14726e]" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#4338CA]" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
               <span className="text-sm text-[#6b7280] font-medium">No spam</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#14726e]" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#4338CA]" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
                 <line x1="1" y1="10" x2="23" y2="10"/>
               </svg>
@@ -371,11 +370,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0e3e3b] text-white/70 py-10 px-6">
+      <footer className="bg-[#111827] text-white/70 py-10 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
                 <span className="text-white font-bold text-sm">A</span>
               </div>
               <span className="font-extrabold text-white text-lg">AuditUs</span>

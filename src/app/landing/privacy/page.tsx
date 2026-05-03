@@ -2,20 +2,20 @@ import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#f3ede2]">
+    <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header */}
-      <header className="bg-[#0e3e3b] text-white py-12 px-6">
+      <header className="bg-[#111827] text-white py-12 px-6">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Link href="/landing" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
                 <span className="text-white font-bold text-sm">A</span>
               </div>
               <span className="font-extrabold text-white text-lg">AuditUs</span>
             </Link>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight">Privacy Policy</h1>
-          <p className="text-[#14726e] mt-2">Last updated: May 2, 2026</p>
+          <p className="text-[#7F65D0] mt-2">Last updated: May 2, 2026</p>
         </div>
       </header>
 

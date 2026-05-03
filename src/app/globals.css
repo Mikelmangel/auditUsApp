@@ -13,36 +13,36 @@
    ───────────────────────────────────────────── */
 
 :root {
-  /* Brand Colors */
-  --brand-teal:     #14726e;
-  --brand-orange:   #f36b2d;
-  --brand-yellow:   #ffc800;
-  --brand-cream:    #f3ede2;
+  /* Brand Colors (STITCH V4 PURPLE PALETTE) */
+  --brand-primary:   #4338CA; /* Indigo */
+  --brand-secondary: #7F65D0; /* Purple */
+  --brand-accent:    #BA528E; /* Pink/Magenta */
+  --brand-canvas:    #F8FAFC; /* Light Slate */
 
   /* Semantic Layers */
-  --bg:             var(--brand-cream);
+  --bg:             var(--brand-canvas);
   --surface:        #ffffff;
-  --surface-muted:  #f8f6f2;
+  --surface-muted:  #F1F5F9;
 
   /* Text Layers */
-  --text-high:      #0e3e3b;
-  --text-body:      #1a1a1a;
-  --text-muted:     #6b7280;
+  --text-high:      #111827;
+  --text-body:      #374151;
+  --text-muted:     #6B7280;
   --text-inverse:   #ffffff;
 
   /* Interactive / Accents */
-  --primary:     oklch(0.205 0 0);
+  --primary:        var(--brand-primary);
   --on-primary:     #ffffff;
-  --accent:     oklch(0.97 0 0);
+  --accent:         var(--brand-secondary);
   --on-accent:      #ffffff;
 
   /* Borders & Shadows */
-  --border-light:   rgba(14, 62, 59, 0.05); /* Soft teal tint */
-  --border-medium:  rgba(14, 62, 59, 0.1);
-  --shadow-sm:      0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md:      0 8px 20px rgba(14, 62, 59, 0.06);
-  --shadow-lg:      0 12px 32px rgba(14, 62, 59, 0.1);
-  --shadow-orange:  0 8px 24px rgba(243, 107, 45, 0.25);
+  --border-light:   rgba(67, 56, 202, 0.05);
+  --border-medium:  rgba(67, 56, 202, 0.1);
+  --shadow-sm:      0 2px 8px rgba(0, 0, 0, 0.02);
+  --shadow-md:      0 8px 20px rgba(67, 56, 202, 0.04);
+  --shadow-lg:      0 12px 32px rgba(67, 56, 202, 0.08);
+  --shadow-accent:  0 8px 24px rgba(127, 101, 208, 0.2);
 
   /* Radius & Spacing */
   --radius-sm:      12px;
@@ -191,7 +191,7 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: var(--shadow-orange);
+  box-shadow: var(--shadow-accent);
   transition: all 0.2s var(--ease-expo);
   min-height: 52px;
 }
@@ -381,11 +381,11 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 
 /* Poll banner card */
 .poll-banner {
-  background: linear-gradient(135deg, #14726e 0%, #0e3e3b 100%);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
   border-radius: 28px;
   padding: 20px;
   border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 8px 32px rgba(14, 62, 59, 0.25);
+  box-shadow: 0 8px 32px rgba(67, 56, 202, 0.25);
 }
 
 /* Section label (small all-caps heading) */
