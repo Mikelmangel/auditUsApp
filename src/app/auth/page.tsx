@@ -7,7 +7,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User, Zap } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -87,13 +87,7 @@ export default function AuthPage() {
             
             {/* Header */}
             <div className="flex flex-col items-center text-center mb-10">
-              <motion.div 
-                whileHover={{ scale: 1.05, rotate: 2 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-20 h-20 rounded-[32px] bg-indigo-600 flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/30 border-4 border-white"
-              >
-                <Zap size={40} className="text-white fill-white" />
-              </motion.div>
+              <Image src="/icon-192.png" alt="AuditUs" width={80} height={80} className="w-20 h-20 rounded-[32px] shadow-xl shadow-indigo-500/30 border-4 border-white" />
               <h1 className="font-jakarta text-4xl font-black text-slate-900 tracking-tight mb-2 leading-none cursor-default">
                 AuditUs
               </h1>
