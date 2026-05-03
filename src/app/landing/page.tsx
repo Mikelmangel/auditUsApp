@@ -94,7 +94,7 @@ export default function LandingPage() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
         >
           <Button className="bg-[#4338CA] hover:bg-[#3730a3] text-white gap-3 h-14 px-8 rounded-2xl font-bold text-base transition-all hover:scale-105 shadow-lg shadow-indigo-500/30">
             <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
@@ -108,21 +108,14 @@ export default function LandingPage() {
             </svg>
             {t.landing.hero.ctaGoogle}
           </Button>
-        </motion.div>
-
-        {/* Web auth CTA */}
-        <motion.div
-          custom={4}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className="flex justify-center"
-        >
           <Link
             href="/auth"
-            className="text-[#4338CA] font-bold text-base hover:underline transition-all"
+            className="border border-[#4338CA] text-[#4338CA] hover:bg-[#4338CA]/10 gap-3 h-14 px-8 rounded-2xl font-bold text-base transition-all hover:scale-105 flex items-center justify-center"
           >
-            href="/auth"
+            <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Jugar en web
           </Link>
         </motion.div>
 
