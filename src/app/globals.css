@@ -114,20 +114,14 @@ html, body {
   color: var(--text-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overscroll-behavior: none;
-  height: 100%;
-  overflow: hidden; /* Lock global scroll */
+  min-height: 100%;
 }
 
 #app-root {
-  max-width: 430px;
-  margin: 0 auto;
-  height: 100svh; /* Changed from min-height: 100svh */
-  background: var(--bg);
   position: relative;
-  overflow: hidden; /* Prevent overflow on the root container */
   display: flex;
   flex-direction: column;
+  min-height: 100svh;
 }
 
 .custom-scrollbar {
