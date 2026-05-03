@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const fadeUp = {
@@ -42,11 +43,9 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
+            <Image src="/icon-192.png" alt="AuditUs" width={32} height={32} className="w-8 h-8 rounded-xl" />
+            <span className="font-extrabold text-[#111827] text-lg tracking-tight">AuditUs</span>
           </div>
-          <span className="font-extrabold text-[#111827] text-lg tracking-tight">AuditUs</span>
-        </div>
         <div className="flex items-center gap-4">
           <Link href="/landing/privacy" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Privacy</Link>
           <Link href="/landing/terms" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Terms</Link>
@@ -385,9 +384,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
+              <Image src="/icon-192.png" alt="AuditUs" width={32} height={32} className="w-8 h-8 rounded-xl" />
               <span className="font-extrabold text-white text-lg">AuditUs</span>
             </div>
             <div className="flex gap-6 md:gap-8 text-sm">
