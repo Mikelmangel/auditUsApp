@@ -2,6 +2,7 @@
 
 import { Button, Card } from "@/components/ui";
 import { MobileLayout } from "@/components/MobileLayout";
+import Image from "next/image";
 
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -65,9 +66,7 @@ export default function AuthPage() {
         {/* Logo Header */}
         <div className="w-full max-w-[440px] mb-8 flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--stitch-primary)] flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Zap size={24} className="text-white fill-white" />
-            </div>
+            <Image src="/icon-192.png" alt="AuditUs" width={48} height={48} className="w-12 h-12 rounded-2xl shadow-lg shadow-indigo-500/30" />
             <div>
               <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight">
                 AuditUs

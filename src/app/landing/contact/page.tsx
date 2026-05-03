@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,9 +23,7 @@ export default function ContactPage() {
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Link href="/landing" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
+              <Image src="/icon-192.png" alt="AuditUs" width={32} height={32} className="w-8 h-8 rounded-xl" />
               <span className="font-extrabold text-white text-lg">AuditUs</span>
             </Link>
           </div>
@@ -79,12 +78,7 @@ export default function ContactPage() {
           </div>
         ) : (
           <div className="bg-[#4338CA]/10 border border-[#4338CA]/30 rounded-3xl p-10 text-center">
-            <div className="w-16 h-16 bg-[#4338CA] rounded-full flex items-center justify-center mx-auto mb-5">
-              <svg viewBox="0 0 24 24" className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            </div>
+            <Image src="/icon-192.png" alt="AuditUs" width={64} height={64} className="w-16 h-16 rounded-full mx-auto mb-5" />
             <h2 className="text-2xl font-extrabold text-[#111827] mb-2">Message sent!</h2>
             <p className="text-[#6b7280] mb-6">Thanks for reaching out. We&apos;ll get back to you within 48 hours.</p>
             <button

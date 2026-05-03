@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function TermsPage() {
@@ -8,9 +9,7 @@ export default function TermsPage() {
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Link href="/landing" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-xl bg-[#4338CA] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">A</span>
-              </div>
+              <Image src="/icon-192.png" alt="AuditUs" width={32} height={32} className="w-8 h-8 rounded-xl" />
               <span className="font-extrabold text-white text-lg">AuditUs</span>
             </Link>
           </div>

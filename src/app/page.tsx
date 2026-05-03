@@ -2,11 +2,12 @@
 
 import { Avatar, BottomNav, Button, Card, EmptyState, LoadingScreen, SectionTitle } from "@/components/ui";
 import { MobileLayout } from "@/components/MobileLayout";
+import Image from "next/image";
 
 import { useAuth } from "@/hooks/useAuth";
 import { groupService, pollService, profileService, type Group, type Profile } from "@/lib/services";
 import { motion } from "framer-motion";
-import { Flame, MessageSquare, Plus, Zap } from "lucide-react";
+import { Flame, MessageSquare, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -50,9 +51,7 @@ export default function Home() {
       header={
         <header className="px-6 pt-12 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-5">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--stitch-primary)] flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Zap size={20} className="text-white fill-white" />
-            </div>
+            <Image src="/icon-192.png" alt="AuditUs" width={40} height={40} className="w-10 h-10 rounded-2xl shadow-lg shadow-indigo-500/30" />
             <div>
               <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight">
                 AuditUs
