@@ -110,6 +110,22 @@ export default function LandingPage() {
           </Button>
         </motion.div>
 
+        {/* Web auth CTA */}
+        <motion.div
+          custom={4}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="flex justify-center"
+        >
+          <Link
+            href="/auth"
+            className="text-[#4338CA] font-bold text-base hover:underline transition-all"
+          >
+            href="/auth"
+          </Link>
+        </motion.div>
+
         {/* Phone mockups - hide on small mobile */}
         <motion.div
           custom={4}

@@ -21,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/landing");
+      router.push("/auth");
       return;
     }
     if (!user) return;
