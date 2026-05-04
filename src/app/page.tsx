@@ -11,9 +11,13 @@ import { Flame, MessageSquare, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
+
 
 export default function Home() {
+  const { t } = useLanguage();
   const router = useRouter();
+
   const { user, loading: authLoading } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -57,7 +61,7 @@ export default function Home() {
                 AuditUs
               </h1>
               <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
-                Dashboard Hub
+                Dashboard
               </p>
             </div>
           </div>
@@ -82,9 +86,9 @@ export default function Home() {
     >
       <main className="px-6 py-6 flex-1 max-w-[430px] mx-auto w-full flex flex-col gap-8">
         <div className="flex items-center justify-between">
-          <SectionTitle className="mb-0">Tus Grupos</SectionTitle>
+          <SectionTitle className="mb-0">{t.home.yourGroups}</SectionTitle>
           <div className="bg-indigo-50 text-[var(--stitch-primary)] px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-wider">
-            {groups.length} activos
+            {t.home.activeCount.replace("{count}", String(groups.length))}
           </div>
         </div>
 
@@ -95,13 +99,13 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
             <EmptyState
-              title="Sin grupos activos"
-              message="Únete a un grupo o crea uno nuevo para empezar a auditar a tus amigos."
+              title={t.home.emptyTitle}
+              message={t.home.emptyMessage}
               action={
                 <Link href="/groups/new" className="w-full">
                   <Button>
                     <Plus size={20} />
-                    Crear primer grupo
+                    {t.home.createFirst}
                   </Button>
                 </Link>
               }
@@ -133,14 +137,14 @@ export default function Home() {
                               <MessageSquare size={10} className="text-slate-400" />
                               <span className="font-inter text-[9px] font-black text-slate-500 uppercase tracking-tighter">
                                 {new Date(group.created_at).toLocaleDateString() === new Date().toLocaleDateString()
-                                  ? "Hoy"
-                                  : `Hace ${Math.floor((new Date().getTime() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24))}d`}
+                                  ? t.home.today
+                                  : t.home.daysAgo.replace("{days}", String(Math.floor((new Date().getTime() - new Date(group.created_at).getTime()) / (1000 * 60 * 60 * 24))))}
                               </span>
                             </div>
                             {activePollsByGroup[group.id] && (
                               <div className="flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-full">
                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="font-inter text-[9px] font-black text-indigo-600 uppercase">En vivo</span>
+                                <span className="font-inter text-[9px] font-black text-indigo-600 uppercase">{t.home.live}</span>
                               </div>
                             )}
                           </div>
@@ -161,13 +165,13 @@ export default function Home() {
               <Link href="/groups/new">
                 <Button className="h-16 shadow-xl shadow-indigo-500/20">
                   <Plus size={20} className="text-white" />
-                  <span>Crear nuevo grupo</span>
+                  <span>{t.home.createNew}</span>
                 </Button>
               </Link>
               
               <Link href="/groups/new" className="text-center group">
                 <span className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-[var(--stitch-primary)] transition-colors">
-                  O unirse mediante código hexagonal
+                  {t.home.joinByHex}
                 </span>
                 <div className="h-0.5 w-0 mx-auto bg-[var(--stitch-primary)] group-hover:w-20 transition-all duration-300" />
               </Link>

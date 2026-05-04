@@ -19,18 +19,21 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { useLanguage } from "@/hooks/useLanguage";
+
 
 type TabKey = "polls" | "members" | "ranking" | "audit" | "survival";
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "polls",    label: "Encuestas" },
-  { key: "members",  label: "Miembros" },
-  { key: "ranking",  label: "Ranking" },
-  { key: "audit",    label: "Auditoría" },
-  { key: "survival", label: "⚔️ Battle" },
-];
-
 export default function GroupPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t, language } = useLanguage();
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: "polls",    label: t.group.polls },
+    { key: "members",  label: t.group.members },
+    { key: "ranking",  label: t.group.ranking },
+    { key: "audit",    label: t.group.audit },
+    { key: "survival", label: t.group.battle },
+  ];
+
   const [group,            setGroup]            = useState<Group | null>(null);
   const [members,          setMembers]          = useState<GroupMember[]>([]);
   const [polls,            setPolls]            = useState<Poll[]>([]);
@@ -76,15 +79,15 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     if (!group) return;
     await navigator.clipboard.writeText(group.invite_code);
     setCopied(true);
-    toast.success(`Código ${group.invite_code} copiado`);
+    toast.success(t.group.copiedCode.replace("{code}", group.invite_code));
     setTimeout(() => setCopied(false), 2000);
   };
 
   const share = async () => {
     if (!group) return;
-    const text = `Únete a ${group.name} en AuditUs! Código: ${group.invite_code}`;
+    const text = t.group.shareInvite.replace("{name}", group.name).replace("{code}", group.invite_code);
     if (navigator.share) await navigator.share({ text });
-    else { await navigator.clipboard.writeText(text); toast.success("Copiado al portapapeles"); }
+    else { await navigator.clipboard.writeText(text); toast.success(t.group.copiedToClipboard); }
   };
 
   const createPoll = async () => {
@@ -92,12 +95,12 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     setCreating(true);
     try {
       if (members.length < 2) {
-        toast.error("Necesitas al menos 2 miembros para lanzar la mayoría de encuestas.");
+        toast.error(t.group.noQuestions.replace("{count}", "2"));
         return;
       }
       const q = await questionService.getRandomQuestion(group.id, members.length);
       if (!q) { 
-        toast.error("No hay preguntas adecuadas para " + members.length + " miembros."); 
+        toast.error(t.group.noQuestions.replace("{count}", String(members.length))); 
         return; 
       }
       const shuffled = [...members].sort(() => Math.random() - 0.5);
@@ -110,7 +113,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
       const poll = await pollService.createPoll(group.id, rendered, user.id, q.mode as import("@/lib/services").QuestionMode, q.id);
       await supabase.from("group_poll_history").insert([{ group_id: group.id, question_id: q.id }]);
       setPollCount(prev => prev + 1);
-      toast.success("¡Encuesta lanzada!");
+      toast.success(t.group.pollLaunched);
       router.push(`/poll/${poll.id}`);
     } catch (e: any) {
       toast.error(e.message || "Error");
@@ -125,7 +128,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     try {
       const poll = await pollService.createPoll(group.id, predictionText.trim(), user.id, "prediction");
       setPollCount(prev => prev + 1);
-      toast.success("¡Predicción lanzada!");
+      toast.success(t.group.predictionLaunched);
       setShowPrediction(false);
       setPredictionText("");
       router.push(`/poll/${poll.id}`);
@@ -144,12 +147,12 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
         method: "POST",
         body: JSON.stringify({ groupName: group.name }),
       });
-      if (!res.ok) throw new Error("Error al generar la auditoría");
+      if (!res.ok) throw new Error(t.group.auditError);
       const newSummary = await res.json();
       setSummaries(prev => [newSummary, ...prev]);
-      toast.success("¡Auditoría generada!");
+      toast.success(t.group.pollLaunched); // Using same success for simplicity or add specific
     } catch (e: any) {
-      toast.error(e.message || "Error al generar la auditoría");
+      toast.error(e.message || t.group.auditError);
     } finally {
       setGenerating(false);
     }
@@ -157,41 +160,43 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
 
   const startSurvival = async () => {
     if (!group || !isAdmin) return;
-    if (!confirm("¿Empezar un Battle Royale? Esto invitará a todos los miembros actuales.")) return;
+    // For simplicity keeping confirm in Spanish/English fallback or use t.group.confirmBattle
+    if (!confirm(t.group.battleRoyaleDesc)) return;
     try {
       const g = await survivalService.startSurvivalGame(group.id, members.map(m => m.profile_id));
       setSurvivalGame({ ...g, participants: members.map(m => ({ profile_id: m.profile_id, is_eliminated: false })) });
-      toast.success("¡Que comiencen los juegos del hambre!");
+      toast.success(t.group.battleHungerGames);
     } catch (e: any) {
       toast.error(e.message);
     }
   };
 
   const leave = async () => {
-    if (!group || !user || !confirm("¿Abandonar el grupo?")) return;
+    if (!group || !user || !confirm(t.group.leaveGroupConfirm)) return;
     await groupService.leaveGroup(group.id, user.id);
-    toast.success("Has salido del grupo");
+    toast.success(t.group.leftGroup);
     router.push("/");
   };
 
   const handleKick = async (targetUserId: string, username: string) => {
-    if (!group || !confirm(`¿Expulsar a ${username}? No podrá volver a entrar.`)) return;
+    if (!group || !confirm(t.group.kickMember.replace("{name}", username))) return;
     try {
       await groupService.kickMember(group.id, targetUserId);
       setMembers(prev => prev.filter(m => m.profile_id !== targetUserId));
-      toast.success(`${username} ha sido expulsado.`);
+      toast.success(t.group.memberKicked.replace("{name}", username));
     } catch {
-      toast.error("No se pudo expulsar al miembro");
+      toast.error("Error");
     }
   };
+
 
   if (loading) return <LoadingScreen />;
 
   if (!group) return (
     <div className="min-h-svh flex flex-col items-center justify-center gap-6 px-6 bg-[var(--stitch-canvas)]">
-      <p className="font-inter text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Grupo Inexistente</p>
+      <p className="font-inter text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">{t.group.nonExistent}</p>
       <Link href="/">
-        <Button variant="primary" className="max-w-[200px]">Volver al Inicio</Button>
+        <Button variant="primary" className="max-w-[200px]">{t.group.backToHome}</Button>
       </Link>
     </div>
   );
@@ -208,13 +213,13 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between px-1">
         <h3 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {tab === "audit" ? "Análisis Temporal" : "Historial de Datos"}
+          {tab === "audit" ? t.group.audit : t.group.activityLog}
         </h3>
         <button 
           onClick={() => setIsCalendarOpen(!isCalendarOpen)}
           className="font-inter text-[9px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm active:scale-95 transition-transform"
         >
-          {isCalendarOpen ? "Minimizar" : "Ver Calendario"}
+          {isCalendarOpen ? t.group.minimize : t.group.viewCalendar}
           <ChevronRight size={10} className={cn("transition-transform", isCalendarOpen && "rotate-90")} />
         </button>
       </div>
@@ -290,7 +295,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 const isSelected = selectedDate === dateStr;
                 const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
                 const hasSummary = summaries.some(s => new Date(s.created_at).toISOString().split("T")[0] === dateStr);
-                const dayName = new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(d);
+                const dayName = new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).format(d);
                 const dayNum = d.getDate();
 
                 return (
@@ -366,7 +371,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
               className="h-14 shadow-xl shadow-indigo-500/20"
             >
               {!creating && <Zap size={18} fill="currentColor" />}
-              Lanzar Auditoría Aleatoria ({pollCount}/3)
+              {t.group.launchAudit} ({pollCount}/3)
             </Button>
 
             {!showPrediction ? (
@@ -375,7 +380,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 className="w-full flex items-center justify-center gap-3 py-3.5 border-2 border-dashed border-slate-200 rounded-[32px] font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:bg-slate-50 transition-all active:scale-[0.98]"
               >
                 <Sparkles size={14} />
-                Predicción Manual
+                {t.group.manualPrediction}
               </button>
             ) : (
               <motion.div
@@ -384,16 +389,16 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 className="overflow-hidden"
               >
                 <Card className="p-5 flex flex-col gap-4">
-                  <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">Configurar Predicción</h4>
+                  <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-2">{t.group.configPrediction}</h4>
                   <input
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 font-jakarta font-bold text-slate-900 text-sm focus:outline-none focus:border-indigo-400 transition-all"
-                    placeholder="¿Quién es más probable que...?"
+                    placeholder={t.group.placeholderPrediction}
                     value={predictionText}
                     onChange={e => setPredictionText(e.target.value)}
                   />
                   <div className="flex gap-3">
-                    <Button variant="secondary" onClick={() => setShowPrediction(false)}>Cancelar</Button>
-                    <Button onClick={createPrediction} loading={creating} disabled={!predictionText.trim()}>Lanzar</Button>
+                    <Button variant="secondary" onClick={() => setShowPrediction(false)}>{t.group.cancel}</Button>
+                    <Button onClick={createPrediction} loading={creating} disabled={!predictionText.trim()}>{t.group.launch}</Button>
                   </div>
                 </Card>
               </motion.div>
@@ -417,7 +422,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 initial={{ opacity: 0, y: 20 }} 
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }} // Expo-out
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col gap-8"
               >
                 <HistoryNavigator />
@@ -425,12 +430,12 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                   <div className="flex items-center gap-3 px-1 mb-2">
                     <div className="w-1 h-4 bg-indigo-500 rounded-full" />
                     <h4 className="font-jakarta text-xs font-black text-slate-900 uppercase">
-                      Auditorías del {new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(new Date(selectedDate))}
+                      {t.group.auditsFrom} {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'long' }).format(new Date(selectedDate))}
                     </h4>
                   </div>
                   {polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate).length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 bg-white/50 border-2 border-dashed border-slate-100 rounded-[40px] text-center px-8">
-                      <p className="font-inter text-[10px] font-black text-slate-300 uppercase tracking-widest">No hay registros para esta fecha</p>
+                      <p className="font-inter text-[10px] font-black text-slate-300 uppercase tracking-widest">{t.group.noRecordsDate}</p>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
@@ -489,7 +494,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                       <div className="flex items-center gap-1.5">
                         <Zap size={10} className="text-indigo-400 fill-indigo-400" />
                         <span className="font-inter text-[9px] text-slate-400 font-black uppercase tracking-widest">
-                          {m.profiles?.points || 0} Credenciales
+                          {m.profiles?.points || 0} {t.group.credentials}
                         </span>
                       </div>
                     </div>
@@ -557,16 +562,16 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                     className="h-16 border-dashed border-indigo-200"
                   >
                     {!generating && <Sparkles size={18} className="text-indigo-600" />}
-                    {generating ? "Procesando Auditoría IA..." : "Sintetizar Datos de Hoy"}
+                    {generating ? t.group.generatingAudit : t.group.generateAudit}
                   </Button>
                 )}
                 {(() => {
                   const daySummary = summaries.find(s => new Date(s.created_at).toISOString().split("T")[0] === selectedDate);
-                  const dayPolls   = polls.filter(p => new Date(p.created_at).toISOString().split("T")[0] === selectedDate);
+                  const dayPolls   = polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate);
 
                   if (!daySummary && dayPolls.length === 0) return (
                     <div className="flex flex-col items-center justify-center py-20 bg-white/30 border-2 border-dashed border-slate-100 rounded-[40px] text-center px-12">
-                      <p className="font-inter text-[10px] font-black text-slate-300 uppercase tracking-widest leading-loose">No hay suficiente información para generar un reporte automático</p>
+                      <p className="font-inter text-[10px] font-black text-slate-300 uppercase tracking-widest leading-loose">{t.group.insufficientData}</p>
                     </div>
                   );
 
@@ -576,7 +581,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                         <Card className="p-8 border-indigo-100 shadow-xl shadow-indigo-500/5">
                           <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full mb-6">
                             <Sparkles size={12} className="fill-indigo-500" />
-                            <span className="font-inter text-[10px] font-black uppercase tracking-widest">Reporte Gemini AI</span>
+                            <span className="font-inter text-[10px] font-black uppercase tracking-widest">{t.group.auditReport}</span>
                           </div>
                           <div className="prose-light font-inter text-slate-700 leading-relaxed text-sm antialiased">
                             <ReactMarkdown>{daySummary.content}</ReactMarkdown>
@@ -585,7 +590,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                       )}
                       {dayPolls.length > 0 && (
                         <div className="flex flex-col gap-4">
-                          <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Registros de Actividad</h4>
+                          <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t.group.activityLog}</h4>
                           <div className="flex flex-col gap-3">
                             {dayPolls.map(poll => (
                               <Link key={poll.id} href={`/poll/${poll.id}`}>
@@ -618,11 +623,11 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                   <div className="bg-white rounded-[40px] p-10 flex flex-col items-center text-center gap-8 shadow-sm border border-slate-100">
                     <div className="w-24 h-24 rounded-[32px] bg-rose-50 border border-rose-100 flex items-center justify-center text-5xl shadow-inner animate-pulse">⚔️</div>
                     <div>
-                      <h3 className="font-jakarta text-2xl font-black text-slate-900 mb-3 tracking-tight">Battle Royale</h3>
-                      <p className="font-inter text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-loose max-w-[260px]">Modo de supervivencia extrema: una eliminación diaria por votación popular.</p>
+                      <h3 className="font-jakarta text-2xl font-black text-slate-900 mb-3 tracking-tight">{t.group.battleRoyale}</h3>
+                      <p className="font-inter text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-loose max-w-[260px]">{t.group.battleRoyaleDesc}</p>
                     </div>
                     {isAdmin && (
-                      <Button onClick={startSurvival} className="h-16 bg-rose-600 border-rose-500 shadow-xl shadow-rose-500/30">Lanzar Desafío Letal</Button>
+                      <Button onClick={startSurvival} className="h-16 bg-rose-600 border-rose-500 shadow-xl shadow-rose-500/30">{t.group.launchBattle}</Button>
                     )}
                   </div>
                 ) : (
@@ -630,9 +635,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                     <div className="flex items-center justify-between mb-8 border-b border-rose-50 pb-4">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                        <h3 className="font-jakarta text-lg font-black text-rose-600 tracking-tight">Estado Crítico</h3>
+                        <h3 className="font-jakarta text-lg font-black text-rose-600 tracking-tight">{t.group.battleStatus}</h3>
                       </div>
-                      <span className="font-inter text-[10px] font-black text-rose-400 uppercase tracking-widest">En Curso</span>
+                      <span className="font-inter text-[10px] font-black text-rose-400 uppercase tracking-widest">{t.group.battleInProgress}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-5">
                       {members.map(m => {
@@ -658,9 +663,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
         <div className="pt-8 border-t border-slate-100 mt-4 flex flex-col gap-8 items-center pb-20">
           <Button variant="danger" onClick={leave} className="h-14 font-black tracking-widest uppercase text-xs">
             <LogOut size={16} />
-            Abandonar Organización
+            {t.group.leaveBtn}
           </Button>
-          <p className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">Identificador Único: {group.id.split('-')[0]}</p>
+          <p className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-[0.5em]">UID: {group.id.split('-')[0]}</p>
         </div>
       </div>
     </MobileLayout>

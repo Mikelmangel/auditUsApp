@@ -14,12 +14,13 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LANGUAGES } from "@/lib/constants";
 
-const RARITY_BADGE: Record<string, { cls: string; label: string }> = {
-  common:    { cls: "text-slate-400",  label: "Común" },
-  rare:      { cls: "text-indigo-500", label: "Raro" },
-  epic:      { cls: "text-purple-500", label: "Épico" },
-  legendary: { cls: "text-amber-500",  label: "Legendario" },
+const RARITY_BADGE: Record<string, { cls: string; key: "common" | "rare" | "epic" | "legendary" }> = {
+  common:    { cls: "text-slate-400",  key: "common" },
+  rare:      { cls: "text-indigo-500", key: "rare" },
+  epic:      { cls: "text-purple-500", key: "epic" },
+  legendary: { cls: "text-amber-500",  key: "legendary" },
 };
+
 
 import { useLanguage } from "@/hooks/useLanguage";
 
@@ -74,9 +75,9 @@ export default function ProfilePage() {
 
       const updated = await profileService.updateProfile(user.id, { avatar_url: cacheBusted });
       setProfile(updated);
-      toast.success("Foto actualizada");
+      toast.success(t.profile.avatarUpdated);
     } catch (e: any) {
-      toast.error(e.message || "Error al subir la imagen");
+      toast.error(e.message || t.profile.errorImage);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -94,7 +95,7 @@ export default function ProfilePage() {
       });
       setProfile(updated);
       setEditing(false);
-      toast.success("Perfil actualizado");
+      toast.success(t.profile.profileUpdated);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -285,7 +286,7 @@ export default function ProfilePage() {
                         {b.name}
                       </p>
                       <span className={cn("font-inter text-[9px] font-black uppercase tracking-wider", rarity.cls)}>
-                        {rarity.label}
+                        {t.profile.rarity[rarity.key]}
                       </span>
                     </div>
                   </motion.div>
@@ -297,14 +298,14 @@ export default function ProfilePage() {
 
         {/* System Settings */}
         <div className="flex flex-col gap-3">
-          <SectionTitle>Ajustes</SectionTitle>
+          <SectionTitle>{t.profile.settings}</SectionTitle>
           <div className="bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-sm divide-y divide-slate-50">
             <button className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-all group active:scale-[0.99]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100/50">
                   <Heart size={16} />
                 </div>
-                <span className="font-jakarta text-sm font-black text-slate-700">Contribuir al proyecto</span>
+                <span className="font-jakarta text-sm font-black text-slate-700">{t.profile.contribute}</span>
               </div>
               <ChevronRight size={15} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -317,7 +318,7 @@ export default function ProfilePage() {
                 <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200/50 group-hover:bg-rose-100 group-hover:text-rose-500 transition-colors">
                   <LogOut size={16} />
                 </div>
-                <span className="font-jakarta text-sm font-black text-slate-700 group-hover:text-rose-600 transition-colors">Cerrar sesión</span>
+                <span className="font-jakarta text-sm font-black text-slate-700 group-hover:text-rose-600 transition-colors">{t.profile.logout}</span>
               </div>
               <ChevronRight size={15} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
             </button>

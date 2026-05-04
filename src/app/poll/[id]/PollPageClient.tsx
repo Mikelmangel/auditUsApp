@@ -17,21 +17,24 @@ import {
   type Poll, type GroupMember, type Comment,
 } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "sonner";
 
-const CATEGORY_CONFIG: Record<string, { bg: string; emoji: string; label: string }> = {
-  humor:      { bg: "from-amber-500 to-orange-600",    emoji: "😂", label: "Humor" },
-  habilidades:{ bg: "from-emerald-500 to-teal-600",    emoji: "💪", label: "Habilidades" },
-  futuro:     { bg: "from-violet-600 to-purple-700",   emoji: "🔮", label: "Futuro" },
-  atrevidas:  { bg: "from-rose-500 to-pink-600",       emoji: "🌶️", label: "Atrevidas" },
-  hipoteticas:{ bg: "from-cyan-500 to-blue-600",       emoji: "🧠", label: "Hipotéticas" },
-  vinculos:   { bg: "from-yellow-500 to-amber-600",   emoji: "💛", label: "Vínculos" },
-  eventos:    { bg: "from-fuchsia-500 to-purple-600",  emoji: "🎉", label: "Eventos" },
-  ia_custom:  { bg: "from-indigo-600 to-blue-700",     emoji: "🤖", label: "IA" },
-  general:    { bg: "from-indigo-600 to-indigo-700",    emoji: "❓", label: "General" },
-};
 
 export default function PollPage({ params }: { params: Promise<{ id: string }> }) {
+  const { t } = useLanguage();
+  const CATEGORY_CONFIG: Record<string, { bg: string; emoji: string; label: string }> = {
+    humor:      { bg: "from-amber-500 to-orange-600",    emoji: "😂", label: t.poll.categories.humor },
+    habilidades:{ bg: "from-emerald-500 to-teal-600",    emoji: "💪", label: t.poll.categories.habilidades },
+    futuro:     { bg: "from-violet-600 to-purple-700",   emoji: "🔮", label: t.poll.categories.futuro },
+    atrevidas:  { bg: "from-rose-500 to-pink-600",       emoji: "🌶️", label: t.poll.categories.atrevidas },
+    hipoteticas:{ bg: "from-cyan-500 to-blue-600",       emoji: "🧠", label: t.poll.categories.hipoteticas },
+    vinculos:   { bg: "from-yellow-500 to-amber-600",   emoji: "💛", label: t.poll.categories.vinculos },
+    eventos:    { bg: "from-fuchsia-500 to-purple-600",  emoji: "🎉", label: t.poll.categories.eventos },
+    ia_custom:  { bg: "from-indigo-600 to-blue-700",     emoji: "🤖", label: t.poll.categories.ia_custom },
+    general:    { bg: "from-indigo-600 to-indigo-700",    emoji: "❓", label: t.poll.categories.general },
+  };
+
   const [poll, setPoll] = useState<Poll | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [voted, setVoted] = useState(false);
@@ -124,7 +127,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       setVoters(prev => [...prev, user.id]);
       const r = await pollService.getResults(poll.id);
       setResults(r);
-      toast.success("¡Voto registrado! +10 puntos");
+      toast.success(t.poll.votedSuccess);
       if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
@@ -159,7 +162,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       setVoters(prev => [...prev, user.id]);
       const rr = await pollService.getRankingResults(poll.id);
       setRankingResults(rr);
-      toast.success("¡Ranking enviado! +10 puntos");
+      toast.success(t.poll.rankingSuccess);
       if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
@@ -180,7 +183,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
         const answers = await pollService.getFreeAnswers(poll.id);
         setFreeAnswers(answers);
       }
-      toast.success("¡Respuesta enviada! +10 puntos");
+      toast.success(t.poll.freeAnswerSuccess);
       if (Capacitor.isNativePlatform()) showInterstitialAd().catch(() => {});
     } catch (e: any) {
       toast.error(e.message);
@@ -194,7 +197,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
       setPoll(prev => prev ? { ...prev, phase: 'guessing' } : prev);
       const answers = await pollService.getFreeAnswers(poll.id);
       setFreeAnswers(answers);
-      toast.success("Fase de adivinanza activada");
+      toast.success(t.poll.phaseGuessing);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -224,7 +227,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           },
         }),
       }).catch(() => {});
-      toast.success("¡Zumbido enviado!");
+      toast.success(t.poll.nudgeSent);
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -235,7 +238,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     try {
       await pollService.resolvePrediction(poll.id, targetId, user.id);
       setPoll({ ...poll, is_active: false, resolution_status: 'resolved', resolved_target_id: targetId });
-      toast.success("¡Predicción resuelta y puntos repartidos!");
+      toast.success(t.poll.predictionResolved);
     } catch (e: any) {
       toast.error(e.message);
     } finally { setSubmitting(false); }
@@ -247,7 +250,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     try {
       await pollService.closePoll(poll.id);
       setPoll({ ...poll, is_active: false });
-      toast.success("Encuesta cerrada.");
+      toast.success(t.poll.pollClosed);
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -289,8 +292,8 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
 
   if (!poll) return (
     <div className="flex flex-col items-center justify-center h-svh gap-6 px-6 text-center">
-      <p className="text-white/40 text-lg font-bold">Encuesta no encontrada</p>
-      <Link href="/"><button className="btn-primary" style={{ maxWidth: 200 }}>Volver al inicio</button></Link>
+      <p className="text-white/40 text-lg font-bold">{t.poll.notFound}</p>
+      <Link href="/"><button className="btn-primary" style={{ maxWidth: 200 }}>{t.poll.backToHome}</button></Link>
     </div>
   );
 
@@ -321,7 +324,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
             </button>
 
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Nueva en</span>
+              <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t.poll.nextIn}</span>
               <span className="text-sm font-black text-white tabular-nums">{nextQuestionTime}</span>
               <button
                 title={`Categoría: ${cat.label}`}
@@ -367,15 +370,15 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                     <div className="w-1 h-1 rounded-full bg-indigo-500" />
                   </div>
                   <span className="text-xs font-black text-indigo-600">
-                    Han respondido {voters.length} de {members.length}
+                    {t.poll.respondCount.replace("{voters}", String(voters.length)).replace("{members}", String(members.length))}
                   </span>
                 </div>
                 {allVoted ? (
-                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✓ Completo</span>
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">✓ {t.poll.full}</span>
                 ) : (
                   <div className="flex items-center gap-1.5 text-[10px] font-black text-indigo-600 uppercase tracking-widest">
                     <BellRing size={11} />
-                    Enviar zumbido
+                    {t.poll.sendNudge}
                   </div>
                 )}
               </button>
@@ -401,7 +404,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-wider active:bg-indigo-100 transition-all"
                           >
                             <BellRing size={11} />
-                            Zumbar
+                            {t.poll.nudgeBtn}
                           </motion.button>
                         </div>
                       ))}
@@ -529,7 +532,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 {voted && scaleAvg && (
                   <div className="text-center pt-2">
                     <span className="text-3xl font-black text-indigo-600">{scaleAvg}</span>
-                    <span className="text-sm font-bold text-gray-400 ml-1">/ 10 media del grupo</span>
+                    <span className="text-sm font-bold text-gray-400 ml-1">{t.poll.avgGroup}</span>
                   </div>
                 )}
               </div>
@@ -540,7 +543,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               <div className="flex flex-col gap-3">
                 {!voted ? (
                   <>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ordena con las flechas · 1 = mejor</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t.poll.rankingOrder}</p>
                     {rankOrder.map((m, idx) => (
                       <div key={m.profile_id} className="flex items-center gap-3 bg-white rounded-[24px] px-4 py-3 border border-black/5 shadow-sm">
                         <span className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center font-black text-sm text-white flex-shrink-0">{idx + 1}</span>
@@ -563,12 +566,12 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                     <motion.button whileTap={{ scale: 0.98 }} onClick={voteRanking} disabled={submitting}
                       className="h-14 rounded-[20px] bg-indigo-600 border border-indigo-600 font-black text-white text-base shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                     >
-                      {submitting ? <Loader2 size={16} className="animate-spin" /> : "🏅 Confirmar ranking"}
+                      {submitting ? <Loader2 size={16} className="animate-spin" /> : <>🏅 {t.poll.rankingConfirm}</>}
                     </motion.button>
                   </>
                 ) : (
                   <>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Ranking del grupo ({voters.length} votos)</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t.poll.rankingGroup.replace("{count}", String(voters.length))}</p>
                     {(rankingResults.length > 0 ? rankingResults : rankOrder.map((m, idx) => ({ memberId: m.profile_id, avgRank: idx + 1, voteCount: 0 }))).map((r, idx) => {
                       const m = members.find(x => x.profile_id === r.memberId);
                       if (!m) return null;
@@ -592,8 +595,8 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                 {poll.phase === 'guessing' ? (
                   <div className="flex flex-col gap-4">
                     <div className="bg-[#FAECE7] rounded-[24px] p-4 text-center border border-[#F0997B]/30">
-                      <p className="text-sm font-black text-[#4A1B0C]">🔍 Fase de adivinanza</p>
-                      <p className="text-xs text-[#993C1D] mt-1">{freeAnswers.length} respuestas anónimas — ¿quién escribió cada una?</p>
+                      <p className="text-sm font-black text-[#4A1B0C]">{t.poll.phaseGuessing}</p>
+                      <p className="text-xs text-[#993C1D] mt-1">{t.poll.phaseGuessingDesc.replace("{count}", String(freeAnswers.length))}</p>
                     </div>
                     {freeAnswers.map((answer, idx) => (
                       <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }}
@@ -616,40 +619,40 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
                     {isAnonymous && (
                       <div className="flex items-center gap-2 text-xs font-black text-[#4A1B0C] bg-[#FAECE7] px-3 py-2 rounded-full w-fit">
                         <Lock size={12} />
-                        Respuesta anónima
+                        {t.poll.anonymousResponse}
                       </div>
                     )}
                     <textarea
                       className="w-full border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-800 bg-slate-50 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
                       rows={4}
                       maxLength={120}
-                      placeholder="Escribe tu respuesta... (máx. 120 caracteres)"
+                      placeholder={t.poll.writeResponse}
                       value={freeText}
                       onChange={e => setFreeText(e.target.value)}
                       disabled={voted}
                     />
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400 font-medium">{freeText.length}/120</span>
+                      <span className="text-xs text-gray-400 font-medium">{t.poll.maxChars.replace("{count}", "120")} ({freeText.length})</span>
                       {!voted ? (
                         <motion.button whileTap={{ scale: 0.97 }} onClick={submitFreeAnswer} disabled={!freeText.trim() || submitting}
                           className="bg-indigo-600 text-white font-black px-6 py-2.5 rounded-full shadow-lg shadow-indigo-500/20 disabled:opacity-40 flex items-center gap-2"
                         >
-                          {submitting ? <Loader2 size={14} className="animate-spin" /> : "Enviar"}
+                          {submitting ? <Loader2 size={14} className="animate-spin" /> : t.poll.send}
                         </motion.button>
                       ) : (
-                        <span className="text-sm font-black text-indigo-600">✓ Enviada</span>
+                        <span className="text-sm font-black text-indigo-600">✓ {t.poll.full}</span>
                       )}
                     </div>
                     {voted && (
                       <p className="text-center text-xs text-gray-400 font-medium">
-                        Esperando a que todos respondan... {voters.length}/{members.length}
+                        {t.poll.waitingResponses.replace("{voters}", String(voters.length)).replace("{members}", String(members.length))}
                       </p>
                     )}
                     {voted && isAdmin && (
                       <button onClick={handleTransitionToGuessing}
                         className="text-xs font-black text-[#993C1D] bg-[#FAECE7] px-4 py-2 rounded-full w-fit mx-auto"
                       >
-                        Forzar fase de adivinanza (admin)
+                        {t.poll.forceGuessing}
                       </button>
                     )}
                   </div>
@@ -661,7 +664,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
             {isAdmin && pollMode !== 'free' && (
               <div className="flex justify-center">
                 <button onClick={closePollManually} className="text-xs font-black text-gray-400 uppercase tracking-wider hover:text-red-400 transition-colors">
-                  Cerrar encuesta
+                  {t.poll.closePoll}
                 </button>
               </div>
             )}
@@ -669,7 +672,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           </div>
         ) : (
           <div className="text-center py-10">
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Votación Finalizada</p>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">{t.poll.finished}</p>
           </div>
         )}
 
@@ -682,7 +685,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
               ))}
             </div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {comments.length === 0 ? "Sin comentarios" : `${comments.length} Comentario${comments.length !== 1 ? "s" : ""}`}
+              {comments.length === 0 ? t.poll.noComments : `${comments.length} ${comments.length !== 1 ? t.poll.commentsCountPlural : t.poll.commentsCount}`.replace("{count}", String(comments.length))}
             </span>
           </div>
 
@@ -705,14 +708,14 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
           <form onSubmit={sendComment} className="bg-white/70 rounded-[32px] p-2 pl-5 flex items-center gap-2 border border-black/5 backdrop-blur-sm shadow-sm">
             <input
               className="bg-transparent border-none outline-none font-bold text-gray-800 text-sm flex-1 placeholder:text-gray-300 min-w-0"
-              placeholder="Tu reacción 😂😳😠"
+              placeholder={t.poll.reactionPlaceholder}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
             />
             <button type="submit" disabled={!newComment.trim()}
               className="bg-[#f36b2d] text-white font-black px-5 py-2.5 rounded-[22px] shadow-lg shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-40 flex-shrink-0"
             >
-              Enviar
+              {t.poll.send}
             </button>
           </form>
         </div>

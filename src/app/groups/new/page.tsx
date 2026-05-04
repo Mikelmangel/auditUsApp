@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/useLanguage";
+
 
 const EMOJI_GROUPS = [
   { label: "Vibras", icons: ["🔮","⚡","🌊","🔥","💥","🌙","🌈","✨","🌀","💫"] },
@@ -32,9 +34,10 @@ export default function NewGroupPage() {
   const [language, setLanguage] = useState("es");
   const [activeCategory, setActiveCategory] = useState(0);
   const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
+
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +45,7 @@ export default function NewGroupPage() {
     setLoading(true);
     try {
       const group = await groupService.createGroup(name.trim(), user.id, description.trim() || undefined, emoji, language);
-      toast.success(`¡${group.name} creado! Código: ${group.invite_code}`);
+      toast.success(t.group.pollLaunched); // Or specific created toast
       router.push(`/groups/${group.id}`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
@@ -53,7 +56,7 @@ export default function NewGroupPage() {
     setLoading(true);
     try {
       const group = await groupService.joinGroup(code, user.id);
-      toast.success(`¡Te has unido a ${group.name}!`);
+      toast.success(t.group.pollLaunched); // Or specific joined toast
       router.push(`/groups/${group.id}`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
@@ -72,7 +75,7 @@ export default function NewGroupPage() {
               </button>
             </Link>
             <span className="font-jakarta text-sm font-black text-white/50 uppercase tracking-widest">
-              {mode === "create" ? "Nuevo grupo" : "Unirse"}
+              {mode === "create" ? t.group.newGroup : t.group.join}
             </span>
             <div className="w-9 h-9" />
           </div>
@@ -86,10 +89,10 @@ export default function NewGroupPage() {
             </div>
             <div className="min-w-0">
               <p className="font-jakarta text-xl font-black text-white leading-tight truncate">
-                {name || (mode === "create" ? "Nombre del grupo" : "Unirse por código")}
+                {name || (mode === "create" ? t.group.groupName : t.group.joinByCode)}
               </p>
               <p className="font-inter text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">
-                {mode === "create" ? "Círculo de confianza" : "Introduce el código de 6 caracteres"}
+                {mode === "create" ? t.group.description : t.group.enterCode}
               </p>
             </div>
           </motion.div>
@@ -108,7 +111,7 @@ export default function NewGroupPage() {
             onClick={() => setMode("create")}
           >
             <Plus size={13} strokeWidth={3} />
-            Crear
+            {t.group.create}
           </button>
           <button
             className={cn(
@@ -118,7 +121,7 @@ export default function NewGroupPage() {
             onClick={() => setMode("join")}
           >
             <LinkIcon size={13} strokeWidth={3} />
-            Unirse
+            {t.group.join}
           </button>
         </div>
 
@@ -135,7 +138,7 @@ export default function NewGroupPage() {
                 {/* Emoji Picker */}
                 <div className="bg-white rounded-[28px] p-5 shadow-sm border border-slate-100/50">
                   <div className="flex items-center justify-between mb-4 px-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Icono del grupo</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.group.groupIcon}</p>
                     <div className="flex gap-1">
                       {EMOJI_GROUPS.map((g, i) => (
                         <button
@@ -188,7 +191,7 @@ export default function NewGroupPage() {
                 <div className="bg-white rounded-[28px] p-5 shadow-sm border border-slate-100/50 flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
-                      Nombre <span className="text-[#f36b2d]">*</span>
+                      {t.group.groupName} <span className="text-[#f36b2d]">*</span>
                     </label>
                     <input
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 font-black text-slate-900 tracking-tight focus:outline-none focus:border-indigo-500 transition-all text-sm"
@@ -203,7 +206,7 @@ export default function NewGroupPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
-                      Descripción <span className="text-slate-300">(opcional)</span>
+                      {t.group.description} <span className="text-slate-300">(opcional)</span>
                     </label>
                     <input
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-all"
@@ -217,7 +220,7 @@ export default function NewGroupPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
-                      Idioma de las preguntas
+                      {t.group.language}
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {LANGUAGES.map((lang) => (
@@ -247,7 +250,7 @@ export default function NewGroupPage() {
                 >
                   {loading
                     ? <Loader2 size={20} className="animate-spin text-white" />
-                    : <><Plus size={18} strokeWidth={3} /> Crear Grupo</>
+                    : <><Plus size={18} strokeWidth={3} /> {t.group.createBtn}</>
                   }
                 </button>
               </form>
@@ -265,10 +268,10 @@ export default function NewGroupPage() {
                   <Users size={28} className="text-indigo-600" />
                 </div>
                 <h2 className="font-jakarta text-xl font-black text-slate-900 tracking-tight mb-2">
-                  Unirse por código
+                  {t.group.joinByCode}
                 </h2>
                 <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[240px]">
-                  Introduce los 6 caracteres que te ha pasado el admin del grupo.
+                  {t.group.enterCode}
                 </p>
               </div>
 
@@ -307,7 +310,7 @@ export default function NewGroupPage() {
                 >
                   {loading
                     ? <Loader2 size={20} className="animate-spin text-white" />
-                    : <><LinkIcon size={18} strokeWidth={3} /> Unirse Ahora</>
+                    : <><LinkIcon size={18} strokeWidth={3} /> {t.group.joinBtn}</>
                   }
                 </button>
               </form>
