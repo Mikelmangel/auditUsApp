@@ -25,11 +25,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!user) {
       router.push("/auth");
       return;
     }
-    if (!user) return;
     Promise.all([
       groupService.getMyGroups(user.id),
       profileService.getProfile(user.id),
@@ -46,7 +45,7 @@ export default function Home() {
       setActivePollsByGroup(pollMap);
       setLoading(false);
     });
-  }, [user, authLoading]);
+  }, [user]);
 
   if (authLoading || loading) return <LoadingScreen />;
 
