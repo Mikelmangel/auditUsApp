@@ -34,6 +34,7 @@ export default function NewGroupPage() {
   const [language, setLanguage] = useState("es");
   const [activeCategory, setActiveCategory] = useState(0);
   const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
