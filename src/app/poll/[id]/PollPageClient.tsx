@@ -24,15 +24,15 @@ import { toast } from "sonner";
 export default function PollPage({ params }: { params: Promise<{ id: string }> }) {
   const { t } = useLanguage();
   const CATEGORY_CONFIG: Record<string, { bg: string; emoji: string; label: string }> = {
-    humor:      { bg: "from-amber-500 to-orange-600",    emoji: "😂", label: t.poll.categories.humor },
-    habilidades:{ bg: "from-emerald-500 to-teal-600",    emoji: "💪", label: t.poll.categories.habilidades },
-    futuro:     { bg: "from-violet-600 to-purple-700",   emoji: "🔮", label: t.poll.categories.futuro },
-    atrevidas:  { bg: "from-rose-500 to-pink-600",       emoji: "🌶️", label: t.poll.categories.atrevidas },
-    hipoteticas:{ bg: "from-cyan-500 to-blue-600",       emoji: "🧠", label: t.poll.categories.hipoteticas },
-    vinculos:   { bg: "from-yellow-500 to-amber-600",   emoji: "💛", label: t.poll.categories.vinculos },
-    eventos:    { bg: "from-fuchsia-500 to-purple-600",  emoji: "🎉", label: t.poll.categories.eventos },
-    ia_custom:  { bg: "from-indigo-600 to-blue-700",     emoji: "🤖", label: t.poll.categories.ia_custom },
-    general:    { bg: "from-indigo-600 to-indigo-700",    emoji: "❓", label: t.poll.categories.general },
+    humor:      { bg: "from-amber-500 to-orange-600",    emoji: "😂", label: t.poll.categories.humor.label },
+    habilidades:{ bg: "from-emerald-500 to-teal-600",    emoji: "💪", label: t.poll.categories.habilidades.label },
+    futuro:     { bg: "from-violet-600 to-purple-700",   emoji: "🔮", label: t.poll.categories.futuro.label },
+    atrevidas:  { bg: "from-rose-500 to-pink-600",       emoji: "🌶️", label: t.poll.categories.atrevidas.label },
+    hipoteticas:{ bg: "from-cyan-500 to-blue-600",       emoji: "🧠", label: t.poll.categories.hipoteticas.label },
+    vinculos:   { bg: "from-yellow-500 to-amber-600",   emoji: "💛", label: t.poll.categories.vinculos.label },
+    eventos:    { bg: "from-fuchsia-500 to-purple-600",  emoji: "🎉", label: t.poll.categories.eventos.label },
+    ia_custom:  { bg: "from-indigo-600 to-blue-700",     emoji: "🤖", label: t.poll.categories.ia_custom.label },
+    general:    { bg: "from-indigo-600 to-indigo-700",    emoji: "❓", label: t.poll.categories.general.label },
   };
 
   const [poll, setPoll] = useState<Poll | null>(null);

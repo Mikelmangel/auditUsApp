@@ -44,7 +44,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = dictionaries[language] || dictionaries["es"];
+  const getDictionary = (lang: string) => {
+    if (dictionaries[lang]) return dictionaries[lang];
+    const base = lang.split("-")[0];
+    if (dictionaries[base]) return dictionaries[base];
+    return dictionaries["es"];
+  };
+
+  const t = getDictionary(language);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

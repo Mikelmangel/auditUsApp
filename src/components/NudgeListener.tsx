@@ -6,6 +6,9 @@ import { nudgeService } from "@/lib/services";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
+import { native } from "@/components/NativeProvider";
+import { NotificationType } from "@capacitor/haptics";
 
 function urlBase64ToUint8Array(base64: string) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -13,7 +16,18 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-async function saveSubscription(userId: string) {
+async function saveFcmToken(token: string, accessToken: string) {
+  await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ fcmToken: token }),
+  });
+}
+
+async function saveWebSubscription(userId: string) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -40,19 +54,46 @@ export function NudgeListener() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Register service worker once
+  // Web: register service worker
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }, []);
 
-  // Handle push permission
+  // Native: register FCM token
   useEffect(() => {
-    if (!user || typeof window === 'undefined' || !('Notification' in window)) return;
+    if (!user || !Capacitor.isNativePlatform()) return;
+
+    let cleanup: (() => void) | undefined;
+
+    (async () => {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+
+      const permResult = await PushNotifications.requestPermissions();
+      if (permResult.receive !== 'granted') return;
+
+      await PushNotifications.register();
+
+      const regListener = await PushNotifications.addListener('registration', async (tokenData) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await saveFcmToken(tokenData.value, session.access_token);
+        }
+      });
+
+      cleanup = () => { regListener.remove(); };
+    })();
+
+    return () => { cleanup?.(); };
+  }, [user]);
+
+  // Web: handle push permission
+  useEffect(() => {
+    if (!user || Capacitor.isNativePlatform() || typeof window === 'undefined' || !('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
-      saveSubscription(user.id);
+      saveWebSubscription(user.id);
     } else if (Notification.permission === 'default') {
       toast.info('🔔 Activa las notificaciones', {
         description: 'Recibe zumbidos aunque no tengas la app abierta.',
@@ -62,7 +103,7 @@ export function NudgeListener() {
           label: 'Activar',
           onClick: async () => {
             const perm = await Notification.requestPermission();
-            if (perm === 'granted') await saveSubscription(user.id);
+            if (perm === 'granted') await saveWebSubscription(user.id);
           },
         },
       });
@@ -72,12 +113,9 @@ export function NudgeListener() {
   useEffect(() => {
     if (!user) return;
 
-    const checkNudges = async () => {
-      const nudges = await nudgeService.getUnreadNudges(user.id);
-      if (nudges.length > 0) processNudges(nudges);
-    };
-
     const processNudges = async (nudges: any[]) => {
+      native.haptics.notification(NotificationType.Warning);
+
       document.body.classList.add("shake-animation");
       setTimeout(() => document.body.classList.remove("shake-animation"), 800);
 
@@ -85,7 +123,7 @@ export function NudgeListener() {
         const audio = new Audio('/nudge.mp3');
         audio.volume = 0.5;
         audio.play().catch(() => {});
-      } catch (e) {}
+      } catch {}
 
       nudges.forEach(n => {
         toast.error(`🔔 ¡ZUMBIDO de ${n.sender?.username}!`, {
@@ -99,6 +137,11 @@ export function NudgeListener() {
       });
 
       await nudgeService.markAsRead(nudges.map((n: any) => n.id));
+    };
+
+    const checkNudges = async () => {
+      const nudges = await nudgeService.getUnreadNudges(user.id);
+      if (nudges.length > 0) processNudges(nudges);
     };
 
     checkNudges();

@@ -10,22 +10,25 @@ export const es = {
   },
   profile: {
     title: "Mi perfil",
-    edit: "Editar",
-    cancel: "Cancelar",
-    save: "Guardar cambios",
     pseudonym: "Seudónimo",
     bio: "Biografía",
     language: "Idioma de la App",
+    save: "Guardar Cambios",
+    cancel: "Cancelar",
+    edit: "Editar",
+    logout: "Cerrar Sesión",
     streak: "Racha",
     points: "Puntos",
-    badges: "Medallas",
+    badges: "Insignias",
     recognitions: "Reconocimientos",
-    settings: "Ajustes",
-    contribute: "Contribuir al proyecto",
-    logout: "Cerrar sesión",
-    avatarUpdated: "Foto actualizada",
-    profileUpdated: "Perfil actualizado",
+    settings: "Ajustes del Sistema",
+    contribute: "Contribuir al Proyecto",
+    avatarUpdated: "Foto de perfil actualizada",
+    profileUpdated: "Perfil actualizado correctamente",
     errorImage: "Error al subir la imagen",
+    maxSize: "Máximo 2 MB",
+    changePhoto: "Cambiar foto",
+    yourNamePlaceholder: "CÓMO TE LLAMAS",
     noBio: "Sin biografía",
     rarity: {
       common: "Común",
@@ -43,9 +46,16 @@ export const es = {
     groupIcon: "Icono del grupo",
     language: "Idioma de las preguntas",
     createBtn: "Crear Grupo",
+    joinBtn: "Unirse al Grupo",
+    enterCode: "Introduce el código para entrar",
     joinByCode: "Unirse por código",
-    enterCode: "Introduce los 6 caracteres que te ha pasado el admin del grupo.",
-    joinBtn: "Unirse Ahora",
+    vibes: "Vibras",
+    people: "Personas",
+    activity: "Actividad",
+    objects: "Objetos",
+    groupNamePlaceholder: "LOS INSOMNES...",
+    descriptionPlaceholder: "¿De qué va este grupo?",
+    optional: "opcional",
     polls: "Encuestas",
     members: "Miembros",
     ranking: "Ranking",
@@ -90,7 +100,8 @@ export const es = {
     noQuestions: "No hay preguntas adecuadas para {count} miembros.",
     pollLaunched: "¡Encuesta lanzada!",
     predictionLaunched: "¡Predicción lanzada!",
-    auditError: "Error al generar la auditoría"
+    auditError: "Error al generar la auditoría",
+    weekdays: ["L","M","X","J","V","S","D"]
   },
   poll: {
     title: "Encuesta",
@@ -126,15 +137,51 @@ export const es = {
     backToHome: "Volver al inicio",
     avgGroup: "/ 10 media del grupo",
     categories: {
-      humor: "Humor",
-      habilidades: "Habilidades",
-      futuro: "Futuro",
-      atrevidas: "Atrevidas",
-      hipoteticas: "Hipotéticas",
-      vinculos: "Vínculos",
-      eventos: "Eventos",
-      ia_custom: "IA",
-      general: "General"
+      humor: {
+        label: "Humor",
+        description: "Piques, bromas y situaciones ridículas",
+        tagline: "¿Quién perdería una batalla de dignidad?"
+      },
+      habilidades: {
+        label: "Habilidades",
+        description: "Quién vale más para determinadas tareas",
+        tagline: "Demuestra quién manda aquí"
+      },
+      futuro: {
+        label: "Futuro",
+        description: "Predicciones sobre el destino del grupo",
+        tagline: "¿Quién se hará rico primero?"
+      },
+      atrevidas: {
+        label: "Atrevidas",
+        description: "Confesiones y decisiones comprometedoras",
+        tagline: "Sin filtro, sin piedad"
+      },
+      hipoteticas: {
+        label: "Hipotéticas",
+        description: "Escenarios imposibles, respuestas creativas",
+        tagline: "Si el mundo fuera al revés..."
+      },
+      vinculos: {
+        label: "Vínculos",
+        description: "Lo que realmente importa: esta panda",
+        tagline: "El pegamento que nos mantiene"
+      },
+      eventos: {
+        label: "Eventos",
+        description: "Fiestas, viajes y momentos épicos",
+        tagline: "Ordena al grupo para la próxima quedada"
+      },
+      ia_custom: {
+        label: "IA (Beta)",
+        description: "El futuro ya está aquí",
+        tagline: "¿Cuánto depende cada uno de la tecnología?"
+      },
+      general: {
+        label: "General",
+        description: "Preguntas de todo tipo",
+        tagline: "Un poco de todo"
+      }
     }
   },
   home: {
@@ -173,8 +220,56 @@ export const es = {
       success: "¡Estás en la lista!",
       successDesc: "Te avisaremos cuando sea tu turno."
     }
-  }
-};
+  },
+  explore: {
+      title: "Explorar",
+      searchPlaceholder: "Busca categorías o preguntas...",
+      all: "Todos",
+      newLabel: "NUEVO",
+      questionsCount: "{count} PREGUNTAS",
+      usePack: "Usar pack",
+      emptyTitle: "No hay preguntas en esta categoría todavía.",
+      emptyDesc: "Prueba con otro pack o vuelve más tarde.",
+      launchInGroup: "Lanzar en grupo",
+      chooseGroup: "{cat} — elige un grupo",
+      noGroups: "No estás en ningún grupo.",
+      createJoinFirst: "Crea o únete a uno primero.",
+      membersCount: "{count} miembros",
+      needMembers: "Necesitas al menos 2 miembros en el grupo.",
+      noQuestions: "No hay preguntas de {cat} para este grupo.",
+      launchPollSuccess: "¡Encuesta lanzada!",
+      unlockIaTitle: "Desbloquear IA (Beta)",
+      unlockIaDesc: "Lanza encuestas únicas generadas por inteligencia artificial para tu grupo.",
+      unlockFree: "Desbloquear Gratis",
+      unlockSuccess: "¡Desbloqueado! Ya puedes usar IA (Beta) en este grupo.",
+      loginToUse: "Inicia sesión para usar un pack",
+      launchError: "Error al lanzar",
+      unlockError: "Error al desbloquear",
+      noAiQuestions: "No hay preguntas de IA para este grupo.",
+      suggestedGroups: "Sugeridos para ti",
+    },
+    auth: {
+      title: "Acceso Seguro",
+      subtitle: "Panel de Control v4",
+      loginTab: "Iniciar Sesión",
+      signupTab: "Registrarse",
+      emailPlaceholder: "CORREO ELECTRÓNICO",
+      passwordPlaceholder: "CONTRASEÑA",
+      usernamePlaceholder: "NOMBRE DE USUARIO",
+      loginBtn: "Entrar al Sistema",
+      signupBtn: "Crear Cuenta",
+      googleBtn: "Continuar con Google",
+      appleBtn: "Continuar con Apple",
+      socialDivider: "O accede con",
+      comingSoon: "Próximamente",
+      chooseUsername: "Por favor, elige un nombre de usuario.",
+      signupSuccess: "¡Cuenta creada! Ya puedes entrar.",
+      authError: "Error de autenticación.",
+      loginSystem: "Acceso Sistema",
+      newUsers: "Nuevos Usuarios",
+      version: "BUILD 2026.04",
+    }
+  };
 
 export const en: Dictionary = {
   nav: {
@@ -186,22 +281,25 @@ export const en: Dictionary = {
   },
   profile: {
     title: "My Profile",
-    edit: "Edit",
-    cancel: "Cancel",
-    save: "Save changes",
     pseudonym: "Pseudonym",
-    bio: "Bio",
+    bio: "Biography",
     language: "App Language",
+    save: "Save Changes",
+    cancel: "Cancel",
+    edit: "Edit",
+    logout: "Sign Out",
     streak: "Streak",
     points: "Points",
     badges: "Badges",
     recognitions: "Recognitions",
-    settings: "Settings",
-    contribute: "Contribute to project",
-    logout: "Log out",
-    avatarUpdated: "Avatar updated",
-    profileUpdated: "Profile updated",
+    settings: "System Settings",
+    contribute: "Contribute to Project",
+    avatarUpdated: "Profile picture updated",
+    profileUpdated: "Profile updated successfully",
     errorImage: "Error uploading image",
+    maxSize: "Maximum 2 MB",
+    changePhoto: "Change photo",
+    yourNamePlaceholder: "WHAT IS YOUR NAME",
     noBio: "No bio",
     rarity: {
       common: "Common",
@@ -219,9 +317,16 @@ export const en: Dictionary = {
     groupIcon: "Group Icon",
     language: "Question Language",
     createBtn: "Create Group",
-    joinByCode: "Join by Code",
-    enterCode: "Enter the 6-character code given by the group admin.",
-    joinBtn: "Join Now",
+    joinBtn: "Join Group",
+    enterCode: "Enter the code to join",
+    joinByCode: "Join by code",
+    vibes: "Vibes",
+    people: "People",
+    activity: "Activity",
+    objects: "Objects",
+    groupNamePlaceholder: "THE INSOMNIACS...",
+    descriptionPlaceholder: "What's this group about?",
+    optional: "optional",
     polls: "Polls",
     members: "Members",
     ranking: "Ranking",
@@ -266,7 +371,8 @@ export const en: Dictionary = {
     noQuestions: "No suitable questions for {count} members.",
     pollLaunched: "Poll launched!",
     predictionLaunched: "Prediction launched!",
-    auditError: "Error generating audit"
+    auditError: "Error generating audit",
+    weekdays: ["M","T","W","T","F","S","S"]
   },
   poll: {
     title: "Poll",
@@ -302,15 +408,51 @@ export const en: Dictionary = {
     backToHome: "Back to home",
     avgGroup: "/ 10 group average",
     categories: {
-      humor: "Humor",
-      habilidades: "Skills",
-      futuro: "Future",
-      atrevidas: "Daring",
-      hipoteticas: "Hypothetical",
-      vinculos: "Bonds",
-      eventos: "Events",
-      ia_custom: "AI",
-      general: "General"
+      humor: {
+        label: "Humor",
+        description: "Roasts, jokes, and ridiculous situations",
+        tagline: "Who would lose a battle of dignity?"
+      },
+      habilidades: {
+        label: "Skills",
+        description: "Who is better at specific tasks",
+        tagline: "Show who's the boss here"
+      },
+      futuro: {
+        label: "Future",
+        description: "Predictions about the group's fate",
+        tagline: "Who will get rich first?"
+      },
+      atrevidas: {
+        label: "Daring",
+        description: "Confessions and risky decisions",
+        tagline: "No filter, no mercy"
+      },
+      hipoteticas: {
+        label: "Hypothetical",
+        description: "Impossible scenarios, creative answers",
+        tagline: "If the world were upside down..."
+      },
+      vinculos: {
+        label: "Bonds",
+        description: "What really matters: this squad",
+        tagline: "The glue that holds us together"
+      },
+      eventos: {
+        label: "Events",
+        description: "Parties, trips, and epic moments",
+        tagline: "Rank the group for the next hangout"
+      },
+      ia_custom: {
+        label: "AI (Beta)",
+        description: "The future is already here",
+        tagline: "How much does everyone rely on tech?"
+      },
+      general: {
+        label: "General",
+        description: "All kinds of questions",
+        tagline: "A bit of everything"
+      }
     }
   },
   home: {
@@ -349,8 +491,56 @@ export const en: Dictionary = {
       success: "You're on the list!",
       successDesc: "We'll email you when it's your turn."
     }
-  }
-};
+  },
+  explore: {
+      title: "Explore",
+      searchPlaceholder: "Search categories or questions...",
+      all: "All",
+      newLabel: "NEW",
+      questionsCount: "{count} QUESTIONS",
+      usePack: "Use pack",
+      emptyTitle: "No questions in this category yet.",
+      emptyDesc: "Try another pack or come back later.",
+      launchInGroup: "Launch in group",
+      chooseGroup: "{cat} — choose a group",
+      noGroups: "You are not in any group.",
+      createJoinFirst: "Create or join one first.",
+      membersCount: "{count} members",
+      needMembers: "You need at least 2 members in the group.",
+      noQuestions: "No {cat} questions for this group.",
+      launchPollSuccess: "Poll launched!",
+      unlockIaTitle: "Unlock AI (Beta)",
+      unlockIaDesc: "Launch unique polls generated by artificial intelligence for your group.",
+      unlockFree: "Unlock for Free",
+      unlockSuccess: "Unlocked! You can now use AI (Beta) in this group.",
+      loginToUse: "Login to use a pack",
+      launchError: "Error launching",
+      unlockError: "Error unlocking",
+      noAiQuestions: "No AI questions for this group.",
+      suggestedGroups: "Suggested for you",
+    },
+    auth: {
+      title: "Secure Access",
+      subtitle: "Control Panel v4",
+      loginTab: "Login",
+      signupTab: "Sign Up",
+      emailPlaceholder: "EMAIL ADDRESS",
+      passwordPlaceholder: "PASSWORD",
+      usernamePlaceholder: "USERNAME",
+      loginBtn: "Enter System",
+      signupBtn: "Create Account",
+      googleBtn: "Continue with Google",
+      appleBtn: "Continue with Apple",
+      socialDivider: "Or access with",
+      comingSoon: "Coming Soon",
+      chooseUsername: "Please choose a username.",
+      signupSuccess: "Account created! You can now login.",
+      authError: "Authentication error.",
+      loginSystem: "System Login",
+      newUsers: "New Users",
+      version: "BUILD 2026.04",
+    }
+  };
 
 export const dictionaries: Record<string, Dictionary> = {
   es,

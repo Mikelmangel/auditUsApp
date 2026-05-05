@@ -1,3 +1,6 @@
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -6,7 +9,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       const appVisible = windowClients.some((c) => c.visibilityState === 'visible');
-      if (appVisible) return; // toast in-app handles it
+      if (appVisible) return;
 
       return self.registration.showNotification(title || '¡Zumbido!', {
         body: body || 'Te están esperando para votar.',

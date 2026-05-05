@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import { getMessaging } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,9 +12,7 @@ export async function POST(req: NextRequest) {
     );
 
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const token = authHeader.replace('Bearer ', '');
     const supabaseClient = createClient(
@@ -21,10 +20,7 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,20 +31,40 @@ export async function POST(req: NextRequest) {
 
     const { data: subs, error } = await adminSupabase
       .from('push_subscriptions')
-      .select('subscription')
+      .select('subscription, platform')
       .eq('user_id', receiverId);
 
     if (error || !subs?.length) return NextResponse.json({ ok: true });
 
     await Promise.allSettled(
-      subs.map(({ subscription }) =>
-        webpush.sendNotification(subscription as webpush.PushSubscription, JSON.stringify(payload))
-      )
+      subs.map(({ subscription, platform }) => {
+        if (platform === 'android' && subscription.fcm_token) {
+          return getMessaging().send({
+            token: subscription.fcm_token,
+            notification: {
+              title: payload.title || '¡Zumbido!',
+              body: payload.body || 'Te están esperando para votar.',
+            },
+            android: {
+              notification: {
+                channelId: 'nudges',
+                priority: 'high',
+                defaultVibrateTimings: true,
+              },
+            },
+            data: { url: payload.url || '/' },
+          });
+        }
+        return webpush.sendNotification(
+          subscription as webpush.PushSubscription,
+          JSON.stringify(payload)
+        );
+      })
     );
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("Push send error:", err);
+    console.error('Push send error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

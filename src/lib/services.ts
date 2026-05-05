@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { gemini } from './gemini';
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -656,10 +657,38 @@ export const questionService = {
     // Get group's language
     const { data: group } = await supabase
       .from('groups')
-      .select('language')
+      .select('language, name')
       .eq('id', groupId)
       .single();
     const groupLanguage = group?.language || 'es';
+
+    // AI Generation Case
+    if (categoryFilter === 'ia_custom') {
+      try {
+        const { data: members } = await supabase
+          .from('group_members')
+          .select('profiles(username)')
+          .eq('group_id', groupId);
+        
+        const memberNames = members?.map((m: any) => m.profiles?.username).filter(Boolean) || [];
+        const aiQ = await gemini.generateQuestion('ia_custom', group?.name || 'AuditUs', memberNames, groupLanguage);
+        
+        return {
+          id: 'ai-' + Math.random().toString(36).substring(7),
+          text: aiQ.text,
+          mode: aiQ.mode,
+          category: 'ia_custom',
+          language: groupLanguage,
+          is_active: true,
+          min_members: 2,
+          is_anonymous: false
+        } as Question;
+      } catch (err) {
+        console.error("AI Question Generation Failed:", err);
+        // Fallback to general category if AI fails
+        categoryFilter = 'humor';
+      }
+    }
 
     // Get already used questions for this group
     const { data: usedIds } = await supabase
@@ -688,11 +717,31 @@ export const questionService = {
     }
 
     const { data, error } = await query;
-    if (error || !data || data.length === 0) return null;
+    
+    // Fallback logic for regional languages
+    if ((error || !data || data.length === 0) && groupLanguage.includes('-')) {
+      const baseLang = groupLanguage.split('-')[0];
+      const fallbackQuery = supabase
+        .from('questions')
+        .select('*')
+        .eq('is_active', true)
+        .eq('language', baseLang)
+        .lte('min_members', memberCount);
 
-    // Pick random
-    const random = data[Math.floor(Math.random() * data.length)];
-    return random;
+      if (categoryFilter) fallbackQuery.eq('category', categoryFilter);
+      if (modeFilter) fallbackQuery.eq('mode', modeFilter);
+      if (excludeIds.length > 0) fallbackQuery.not('id', 'in', `(${excludeIds.join(',')})`);
+
+      const { data: fallbackData } = await fallbackQuery;
+      if (fallbackData && fallbackData.length > 0) {
+        const randomIndex = Math.floor(Math.random() * fallbackData.length);
+        return fallbackData[randomIndex] as Question;
+      }
+    }
+
+    if (error || !data || data.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * data.length);
+    return data[randomIndex] as Question;
   },
 
   // Render a question template with real group/member data

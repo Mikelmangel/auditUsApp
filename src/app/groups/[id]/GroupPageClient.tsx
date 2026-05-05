@@ -247,8 +247,8 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
 
                 return (
                   <div className="grid grid-cols-7 gap-y-3 text-center">
-                    {["L","M","X","J","V","S","D"].map(d => (
-                      <span key={d} className="font-jakarta text-[10px] font-black text-slate-300 uppercase">{d}</span>
+                    {t.group.weekdays.map((d, i) => (
+                      <span key={i} className="font-jakarta text-[10px] font-black text-slate-300 uppercase">{d}</span>
                     ))}
                     {Array.from({ length: startOffset }).map((_, i) => (
                       <div key={`empty-${i}`} />

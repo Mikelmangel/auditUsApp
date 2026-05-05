@@ -11,6 +11,8 @@ import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -19,6 +21,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
   const router = useRouter();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -31,7 +34,7 @@ export default function AuthPage() {
         if (error) throw error;
         router.push("/");
       } else {
-        if (!username.trim()) { toast.error("Elige un nombre de usuario"); return; }
+        if (!username.trim()) { toast.error(t.auth.chooseUsername); return; }
         const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { 
@@ -41,12 +44,12 @@ export default function AuthPage() {
         });
         if (error) throw error;
         if (data.user) {
-          toast.success("¡Cuenta creada! Revisa tu email para verificarla.");
+          toast.success(t.auth.signupSuccess);
           router.push("/");
         }
       }
     } catch (err: any) {
-      toast.error(err.message || "Error de autenticación");
+      toast.error(err.message || t.auth.authError);
     } finally {
       setLoading(false);
     }
@@ -60,22 +63,24 @@ export default function AuthPage() {
     if (error) toast.error(error.message);
   };
 
+
   return (
     <MobileLayout className="bg-[var(--stitch-canvas)]">
       <div className="h-full flex flex-col items-center justify-start pt-8 px-6 selection:bg-indigo-500/30 overflow-y-auto">
         {/* Logo Header */}
-        <div className="w-full max-w-[440px] mb-8 flex-shrink-0">
+        <div className="w-full max-w-[440px] mb-8 flex-shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Image src="/icon-192.png" alt="AuditUs" width={48} height={48} className="w-12 h-12 rounded-2xl shadow-lg shadow-indigo-500/30" />
             <div>
               <h1 className="font-jakarta text-2xl font-black text-slate-900 leading-none tracking-tight">
-                AuditUs
+                {t.auth.title}
               </h1>
               <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
-                Sistema de Seguridad
+                {t.auth.subtitle}
               </p>
             </div>
           </div>
+          <LanguageSelector />
         </div>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
@@ -94,7 +99,7 @@ export default function AuthPage() {
               <div className="flex items-center gap-3">
                 <div className="h-px w-6 bg-slate-200" />
                 <p className="font-inter text-indigo-500 text-[11px] font-black uppercase tracking-[0.3em]">
-                  {mode === "login" ? "Acceso Sistema" : "Nuevos Usuarios"}
+                  {mode === "login" ? t.auth.loginSystem : t.auth.newUsers}
                 </p>
                 <div className="h-px w-6 bg-slate-200" />
               </div>
@@ -109,7 +114,7 @@ export default function AuthPage() {
                   mode === "login" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                ENTRAR
+                {t.auth.loginTab}
               </button>
               <button 
                 onClick={() => setMode("signup")}
@@ -118,7 +123,7 @@ export default function AuthPage() {
                   mode === "signup" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
                 )}
               >
-                UNIRSE
+                {t.auth.signupTab}
               </button>
             </div>
 
@@ -135,7 +140,7 @@ export default function AuthPage() {
                     <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
                     <input
                       type="text"
-                      placeholder="NOMBRE DE USUARIO"
+                      placeholder={t.auth.usernamePlaceholder}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-5 py-4 font-black text-slate-900 text-xs tracking-widest focus:outline-none focus:border-indigo-400 transition-all uppercase"
@@ -150,7 +155,7 @@ export default function AuthPage() {
                 <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
                   type="email"
-                  placeholder="CORREO ELECTRÓNICO"
+                  placeholder={t.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-5 py-4 font-bold text-slate-900 text-sm focus:outline-none focus:border-indigo-400 transition-all font-inter"
@@ -162,7 +167,7 @@ export default function AuthPage() {
                 <Lock size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
                   type={showPass ? "text" : "password"}
-                  placeholder="CONTRASEÑA"
+                  placeholder={t.auth.passwordPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-12 py-4 font-bold text-slate-900 text-sm focus:outline-none focus:border-indigo-400 transition-all font-inter"
@@ -182,7 +187,7 @@ export default function AuthPage() {
                 loading={loading}
                 className="h-16 mt-4 shadow-xl shadow-indigo-500/20"
               >
-                {mode === "login" ? "INICIAR SESIÓN" : "CREAR CUENTA"}
+                {mode === "login" ? t.auth.loginBtn : t.auth.signupBtn}
                 <ArrowRight size={20} />
               </Button>
             </form>
@@ -190,29 +195,44 @@ export default function AuthPage() {
             {/* Social Divider */}
             <div className="flex items-center gap-4 my-10">
               <div className="h-px flex-1 bg-slate-100" />
-              <span className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">Alternativas</span>
+              <span className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">{t.auth.socialDivider}</span>
               <div className="h-px flex-1 bg-slate-100" />
             </div>
 
             {/* Social Auth */}
-            <button 
-              onClick={handleGoogle} 
-              className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-full py-4 px-6 font-jakarta font-black text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Entrar con Google
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleGoogle}
+                className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 rounded-full py-4 px-6 font-jakarta font-black text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                {t.auth.googleBtn}
+              </button>
+
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-3 bg-slate-50 border border-slate-100 rounded-full py-4 px-6 font-jakarta font-black text-slate-300 cursor-not-allowed relative overflow-hidden"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.41c1.39.07 2.37.74 3.19.8 1.21-.24 2.37-.93 3.67-.84 1.56.12 2.73.72 3.5 1.9-3.23 1.94-2.67 5.71.53 6.93-.65 1.72-1.52 3.41-2.89 4.08zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                </svg>
+                {t.auth.appleBtn}
+                <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-indigo-300 bg-indigo-50 px-2 py-1 rounded-full">
+                  {t.auth.comingSoon}
+                </span>
+              </button>
+            </div>
           </Card>
 
           {/* Footer Polish */}
           <div className="flex flex-col items-center mt-12 space-y-4">
             <p className="font-inter text-slate-300 text-[10px] uppercase tracking-[0.3em] font-black">
-              AuditUs <span className="text-slate-200 mx-2">//</span> Sistema de Seguridad v3.0
+              {t.auth.title} <span className="text-slate-200 mx-2">//</span> {t.auth.version}
             </p>
             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/20" />
           </div>

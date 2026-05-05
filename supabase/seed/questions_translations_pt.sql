@@ -186,4 +186,4 @@ VALUES
 ('{member_A} vs {member_B}: Quem seria o primeiro a aposentar-se porque uma IA faz o seu trabalho?', 'vs', 'ia_custom', NULL, false, 2, 'pt', ARRAY['🤖']::text[], true)
 ('Quanto mudaria a IA a forma como aprendes coisas novas? (1-10)', 'scale', 'ia_custom', NULL, false, 2, 'pt', ARRAY['🤖']::text[], true)
 ('Ordena o grupo conforme quem daria melhor com um assistente IA.', 'ranking', 'ia_custom', NULL, false, 3, 'pt', ARRAY['🤖']::text[], true)
-('{member_A} vs {member_B}: Quem confiaria numa IA para escolher o seu futuro profissional?', 'vs', 'ia_custom', NULL, false, 2, 'pt', '🤖');
+('{member_A} vs {member_B}: Quem confiaria numa IA para escolher o seu futuro profissional?', 'vs', 'ia_custom', NULL, false, 2, 'pt', ARRAY['🤖']::text[], true);

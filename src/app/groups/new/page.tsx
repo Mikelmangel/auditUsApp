@@ -16,10 +16,10 @@ import { useLanguage } from "@/hooks/useLanguage";
 
 
 const EMOJI_GROUPS = [
-  { label: "Vibras", icons: ["🔮","⚡","🌊","🔥","💥","🌙","🌈","✨","🌀","💫"] },
-  { label: "Personas", icons: ["🦋","👑","🎭","🥷","🦁","🐺","🦊","🐉","🦅","🐬"] },
-  { label: "Actividad", icons: ["🎯","🏆","🚀","🎸","🎪","⚽","🏄","🎮","🥊","🎲"] },
-  { label: "Objetos", icons: ["💎","🔑","🗺️","🧿","📡","🧬","🪐","🔭","⚗️","🪄"] },
+  { key: "vibes", icons: ["🔮","⚡","🌊","🔥","💥","🌙","🌈","✨","🌀","💫"] },
+  { key: "people", icons: ["🦋","👑","🎭","🥷","🦁","🐺","🦊","🐉","🦅","🐬"] },
+  { key: "activity", icons: ["🎯","🏆","🚀","🎸","🎪","⚽","🏄","🎮","🥊","🎲"] },
+  { key: "objects", icons: ["💎","🔑","🗺️","🧿","📡","🧬","🪐","🔭","⚗️","🪄"] },
 ];
 
 const ALL_EMOJIS = EMOJI_GROUPS.flatMap(g => g.icons);
@@ -153,7 +153,7 @@ export default function NewGroupPage() {
                               : "bg-slate-100 text-slate-400"
                           )}
                         >
-                          {g.label}
+                          {t.group[g.key as keyof typeof t.group]}
                         </button>
                       ))}
                     </div>
@@ -197,7 +197,7 @@ export default function NewGroupPage() {
                     <input
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 font-black text-slate-900 tracking-tight focus:outline-none focus:border-indigo-500 transition-all text-sm"
                       type="text"
-                      placeholder="LOS INSOMNES..."
+                      placeholder={t.group.groupNamePlaceholder}
                       value={name}
                       onChange={(e) => setName(e.target.value.toUpperCase())}
                       maxLength={40}
@@ -207,12 +207,12 @@ export default function NewGroupPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
-                      {t.group.description} <span className="text-slate-300">(opcional)</span>
+                      {t.group.description} <span className="text-slate-300">({t.group.optional})</span>
                     </label>
                     <input
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-all"
                       type="text"
-                      placeholder="¿De qué va este grupo?"
+                      placeholder={t.group.descriptionPlaceholder}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       maxLength={100}

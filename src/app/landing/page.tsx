@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import Link from 'next/link';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -50,6 +51,7 @@ export default function LandingPage() {
           <Link href="/landing/privacy" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Privacy</Link>
           <Link href="/landing/terms" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Terms</Link>
           <Link href="/landing/contact" className="text-sm text-[#6b7280] hover:text-[#4338CA] transition-colors font-medium">Contact</Link>
+          <LanguageSelector />
         </div>
       </nav>
 

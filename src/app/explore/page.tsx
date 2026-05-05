@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useLanguage } from "@/hooks/useLanguage";
 
 import {
   Search, Sparkles, Flame, Brain, Zap, Coffee,
@@ -19,76 +20,49 @@ import {
 } from "lucide-react";
 
 const CATEGORY_META: Record<string, {
-  label: string;
   icon: typeof Sparkles;
   color: string;
   emoji: string;
-  description: string;
-  tagline: string;
 }> = {
   humor: {
-    label: "Humor",
     icon: Flame,
     color: "from-amber-400 to-orange-500",
     emoji: "😂",
-    description: "Piques, burras y situaciones ridículas",
-    tagline: "¿Quién perdería una معركة de dignidad?",
   },
   habilidades: {
-    label: "Habilidades",
     icon: Zap,
     color: "from-emerald-500 to-teal-600",
     emoji: "💪",
-    description: "Quién vale más para determinadas tareas",
-    tagline: "Demuestra quién manda aquí",
   },
   futuro: {
-    label: "Futuro",
     icon: Brain,
     color: "from-violet-600 to-purple-700",
     emoji: "🔮",
-    description: "Predicciones sobre el destino del grupo",
-    tagline: "¿Quién se hará rico primero?",
   },
   atrevidas: {
-    label: "Atrevidas",
     icon: Lock,
     color: "from-rose-500 to-pink-600",
     emoji: "🌶️",
-    description: "Confesiones y decisiones comprometedoras",
-    tagline: "Sin filtro, sin piedad",
   },
   hipoteticas: {
-    label: "Hipotéticas",
     icon: HelpCircle,
     color: "from-cyan-500 to-blue-600",
     emoji: "🧠",
-    description: "Escenarios imposibles, respuestas creativas",
-    tagline: "Si el mundo fuera al revés...",
   },
   vinculos: {
-    label: "Vínculos",
     icon: Coffee,
     color: "from-yellow-500 to-amber-600",
     emoji: "💛",
-    description: "Lo que realmente importa: esta panda",
-    tagline: "El pegamento que nos mantiene",
   },
   eventos: {
-    label: "Eventos",
     icon: Sparkles,
     color: "from-fuchsia-500 to-purple-600",
     emoji: "🎉",
-    description: "Fiestas, viajes y momentos épicos",
-    tagline: "Ordena al grupo para la próxima quedada",
   },
   ia_custom: {
-    label: "IA (Beta)",
     icon: Zap,
     color: "from-indigo-600 to-blue-700",
     emoji: "🤖",
-    description: "El futuro ya está aquí",
-    tagline: "¿Cuánto depende cada uno de la tecnología?",
   },
 };
 
@@ -105,7 +79,10 @@ function PackCard({
   index: number;
   onSelect: (category: string) => void;
 }) {
+  const { t } = useLanguage();
   const meta = CATEGORY_META[pack.category] ?? CATEGORY_META["humor"];
+  const tCat = t.poll.categories[pack.category as keyof typeof t.poll.categories] || t.poll.categories.humor;
+  const label = tCat.label;
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -125,28 +102,28 @@ function PackCard({
           <div className="flex gap-2">
             {pack.isNew && (
               <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white tracking-widest">
-                NUEVO
+                {t.explore.newLabel}
               </span>
             )}
             <span className="bg-black/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white tracking-widest">
-              {pack.count} PREGUNTAS
+              {t.explore.questionsCount.replace("{count}", String(pack.count))}
             </span>
           </div>
         </div>
 
         <div className="absolute inset-x-0 bottom-0 p-8 pt-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
           <h3 className="font-jakarta text-3xl font-black text-white mb-2 tracking-tight">
-            {meta.label}
+            {label}
           </h3>
           <p className="text-white/70 text-sm font-medium leading-relaxed mb-2 max-w-[240px]">
-            {meta.description}
+            {tCat.description}
           </p>
-          <p className="text-white/50 text-xs italic mb-6">{meta.tagline}</p>
+          <p className="text-white/50 text-xs italic mb-6">{tCat.tagline}</p>
           <button
             className="bg-white text-black rounded-full px-6 py-3 text-sm font-bold flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
             onClick={() => onSelect(pack.category)}
           >
-            Usar pack <ArrowRight size={16} />
+            {t.explore.usePack} <ArrowRight size={16} />
           </button>
         </div>
       </div>
@@ -169,6 +146,7 @@ export default function ExplorePage() {
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [iaCustomUnlockedMap, setIaCustomUnlockedMap] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -205,10 +183,10 @@ export default function ExplorePage() {
   }, []);
 
   const allCategories = [
-    { id: "all", label: "Todos", icon: Sparkles, color: "bg-indigo-500" },
+    { id: "all", label: t.explore.all, icon: Sparkles, color: "bg-indigo-500" },
     ...Object.entries(CATEGORY_META).map(([id, meta]) => ({
       id,
-      label: meta.label,
+      label: t.poll.categories[id as keyof typeof t.poll.categories]?.label || meta.label,
       icon: meta.icon,
       color: "",
     })),
@@ -216,9 +194,10 @@ export default function ExplorePage() {
 
   const filteredPacks = packs.filter((p) => {
     const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+    const tLabel = t.poll.categories[p.category as keyof typeof t.poll.categories]?.label || CATEGORY_META[p.category]?.label || "";
     const matchesSearch =
       search === "" ||
-      CATEGORY_META[p.category]?.label.toLowerCase().includes(search.toLowerCase());
+      tLabel.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -227,7 +206,7 @@ export default function ExplorePage() {
       header={
         <header className="px-6 pt-10 pb-6 flex items-center justify-between">
           <h1 className="font-jakarta text-2xl font-extrabold text-[var(--stitch-primary)] tracking-tight">
-            Explorar
+            {t.explore.title}
           </h1>
           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
             <User size={20} className="text-slate-400" />
@@ -246,7 +225,7 @@ export default function ExplorePage() {
             />
             <input
               type="text"
-              placeholder="Busca categorías o preguntas..."
+              placeholder={t.explore.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-full py-4 pl-12 pr-4 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400"
@@ -285,17 +264,17 @@ export default function ExplorePage() {
           ) : filteredPacks.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-white/40 font-bold text-sm">
-                No hay preguntas en esta categoría todavía.
+                {t.explore.emptyTitle}
               </p>
               <p className="text-white/20 text-xs mt-1">
-                Prueba con otro pack o vuelve más tarde.
+                {t.explore.emptyDesc}
               </p>
             </div>
           ) : (
             <AnimatePresence mode="wait">
               {filteredPacks.map((pack, idx) => (
                 <PackCard key={pack.category} pack={pack} index={idx} onSelect={(cat) => {
-                  if (!user) { toast.error("Inicia sesión para usar un pack"); return; }
+                  if (!user) { toast.error(t.explore.loginToUse); return; }
                   setSelectingPack(cat);
                   setLoadingGroups(true);
                   groupService.getMyGroups(user.id).then(async (g) => {
@@ -330,10 +309,10 @@ export default function ExplorePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="font-jakarta text-xl font-black text-[var(--stitch-primary)]">
-                  Lanzar en grupo
+                  {t.explore.launchInGroup}
                 </h2>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  {CATEGORY_META[selectingPack]?.label ?? selectingPack} — elige un grupo
+                  {t.explore.chooseGroup.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || (CATEGORY_META[selectingPack]?.label ?? selectingPack))}
                 </p>
               </div>
               <button
@@ -350,8 +329,8 @@ export default function ExplorePage() {
               </div>
             ) : userGroups.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-slate-400 font-semibold text-sm">No estás en ningún grupo.</p>
-                <p className="text-slate-300 text-xs mt-1">Crea o únete a uno primero.</p>
+                <p className="text-slate-400 font-semibold text-sm">{t.explore.noGroups}</p>
+                <p className="text-slate-300 text-xs mt-1">{t.explore.createJoinFirst}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -371,13 +350,13 @@ export default function ExplorePage() {
                       try {
                         const members = await groupService.getGroupMembers(group.id);
                         if (members.length < 2) {
-                          toast.error("Necesitas al menos 2 miembros en el grupo.");
+                          toast.error(t.explore.needMembers);
                           setLaunching(false);
                           return;
                         }
                         const q = await questionService.getRandomQuestion(group.id, members.length, selectingPack);
                         if (!q) {
-                          toast.error(`No hay preguntas de ${CATEGORY_META[selectingPack]?.label ?? selectingPack} para este grupo.`);
+                          toast.error(t.explore.noQuestions.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || (CATEGORY_META[selectingPack]?.label ?? selectingPack)));
                           setLaunching(false);
                           return;
                         }
@@ -389,11 +368,10 @@ export default function ExplorePage() {
                           memberCount: members.length,
                         });
                         const poll = await pollService.createPoll(group.id, rendered, user.id, q.mode, q.id);
-                        await supabase.from("group_poll_history").insert([{ group_id: group.id, question_id: q.id }]);
-                        toast.success("¡Encuesta lanzada!");
+                        toast.success(t.explore.launchPollSuccess);
                         router.push(`/poll/${poll.id}`);
                       } catch (e: any) {
-                        toast.error(e.message || "Error al lanzar");
+                        toast.error(e.message || t.explore.launchError);
                       } finally {
                         setLaunching(false);
                       }
@@ -406,7 +384,7 @@ export default function ExplorePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-jakarta font-extrabold text-[var(--stitch-primary)] truncate">{group.name}</p>
-                      <p className="text-slate-400 text-xs">{group.member_count ?? 0} miembros</p>
+                      <p className="text-slate-400 text-xs">{t.explore.membersCount.replace("{count}", String(group.member_count ?? 0))}</p>
                     </div>
                     {isIaCustomLocked ? (
                       <Lock size={16} className="text-rose-400" />
@@ -441,10 +419,10 @@ export default function ExplorePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="font-jakarta text-xl font-black text-[var(--stitch-primary)]">
-                  Desbloquear IA (Beta)
+                  {t.explore.unlockIaTitle}
                 </h2>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  Activa las preguntas de IA para este grupo
+                  {t.explore.unlockIaDesc}
                 </p>
               </div>
               <button
@@ -463,21 +441,20 @@ export default function ExplorePage() {
                   try {
                     await groupUpgradeService.unlockIaCustom(unlockingGroup);
                     setIaCustomUnlockedMap(prev => ({ ...prev, [unlockingGroup]: true }));
-                    toast.success("¡Desbloqueado! Ya puedes usar IA (Beta) en este grupo.");
+                    toast.success(t.explore.unlockSuccess);
                     const groupId = unlockingGroup;
                     setUnlockingGroup(null);
                     // Auto-launch poll after unlock
                     const group = userGroups.find((g: any) => g.id === groupId);
                     if (!group) { setUnlockLoading(false); return; }
-                    setLaunching(true);
                     const members = await groupService.getGroupMembers(groupId);
                     if (members.length < 2) {
-                      toast.error("Necesitas al menos 2 miembros en el grupo.");
+                      toast.error(t.explore.needMembers);
                       setLaunching(false); setUnlockLoading(false); return;
                     }
                     const q = await questionService.getRandomQuestion(groupId, members.length, 'ia_custom');
                     if (!q) {
-                      toast.error("No hay preguntas de IA para este grupo.");
+                      toast.error(t.explore.noAiQuestions);
                       setLaunching(false); setUnlockLoading(false); return;
                     }
                     const shuffled = [...members].sort(() => Math.random() - Math.random());
@@ -489,10 +466,10 @@ export default function ExplorePage() {
                     });
                     const poll = await pollService.createPoll(groupId, rendered, user.id, q.mode, q.id);
                     await supabase.from("group_poll_history").insert([{ group_id: groupId, question_id: q.id }]);
-                    toast.success("¡Encuesta lanzada!");
+                    toast.success(t.explore.launchPollSuccess);
                     router.push(`/poll/${poll.id}`);
                   } catch (e: any) {
-                    toast.error(e.message || "Error al desbloquear");
+                    toast.error(e.message || t.explore.unlockError);
                   } finally {
                     setUnlockLoading(false);
                   }
@@ -501,13 +478,13 @@ export default function ExplorePage() {
                 className="w-full bg-indigo-600 text-white rounded-2xl py-4 font-bold text-sm hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {unlockLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                Desbloquear gratis
+                {t.explore.unlockFree}
               </button>
               <button
                 onClick={() => setUnlockingGroup(null)}
                 className="w-full bg-slate-100 text-slate-500 rounded-2xl py-3 font-semibold text-sm hover:bg-slate-200 transition-all"
               >
-                Cancelar
+                {t.profile.cancel}
               </button>
             </div>
           </motion.div>

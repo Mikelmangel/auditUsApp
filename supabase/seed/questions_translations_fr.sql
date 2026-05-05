@@ -248,4 +248,4 @@ VALUES
 ('Qui serait le juge le plus craint si {group_name} avait un tribunal?', 'poll', 'humor', NULL, false, 2, 'fr', ARRAY['😂']::text[], true)
 ('Qui dans {group_name} changerait le nom du groupe sans le dire à personne?', 'poll', 'humor', NULL, false, 2, 'fr', ARRAY['😂']::text[], true)
 ('Qui screenshotsait ce même sondage et l''enverrait hors du groupe?', 'poll', 'humor', NULL, false, 2, 'fr', ARRAY['😂']::text[], true)
-('Qui dans {group_name} organiserait la meilleure rencontre et qui la rendrait impossible?', 'poll', 'eventos', NULL, false, 2, 'fr', '🎉');
+('Qui dans {group_name} organiserait la meilleure rencontre et qui la rendrait impossible?', 'poll', 'eventos', NULL, false, 2, 'fr', ARRAY['🎉']::text[], true);
