@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
 import { native } from "@/components/NativeProvider";
 import { NotificationType } from "@capacitor/haptics";
+import { useLanguage } from "@/hooks/useLanguage";
 
 function urlBase64ToUint8Array(base64: string) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -98,15 +99,17 @@ export function NudgeListener() {
   useEffect(() => {
     if (!user || Capacitor.isNativePlatform() || typeof window === 'undefined' || !('Notification' in window)) return;
 
+    const { t } = useLanguage();
+
     if (Notification.permission === 'granted') {
       saveWebSubscription(user.id);
     } else if (Notification.permission === 'default') {
-      toast.info('🔔 Activa las notificaciones', {
-        description: 'Recibe zumbidos aunque no tengas la app abierta.',
+      toast.info(t.nudge.title, {
+        description: t.nudge.desc,
         duration: Infinity,
         id: 'push-permission',
         action: {
-          label: 'Activar',
+          label: t.nudge.label,
           onClick: async () => {
             const perm = await Notification.requestPermission();
             if (perm === 'granted') await saveWebSubscription(user.id);
@@ -118,6 +121,7 @@ export function NudgeListener() {
 
   useEffect(() => {
     if (!user) return;
+    const { t } = useLanguage();
 
     const processNudges = async (nudges: any[]) => {
       native.haptics.notification(NotificationType.Warning);
@@ -132,11 +136,11 @@ export function NudgeListener() {
       } catch {}
 
       nudges.forEach(n => {
-        toast.error(`🔔 ¡ZUMBIDO de ${n.sender?.username}!`, {
-          description: "Te están esperando para votar.",
+        toast.error(t.nudge.toastTitle.replace('{name}', n.sender?.username || 'someone'), {
+          description: t.nudge.toastDesc,
           duration: 8000,
           action: {
-            label: "Ir a votar",
+            label: t.nudge.toastAction,
             onClick: () => router.push(`/poll/${n.poll_id}`)
           }
         });
