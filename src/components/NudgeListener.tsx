@@ -68,21 +68,27 @@ export function NudgeListener() {
     let cleanup: (() => void) | undefined;
 
     (async () => {
-      const { PushNotifications } = await import('@capacitor/push-notifications');
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
 
-      const permResult = await PushNotifications.requestPermissions();
-      if (permResult.receive !== 'granted') return;
+        const permResult = await PushNotifications.requestPermissions();
+        if (permResult.receive !== 'granted') return;
 
-      await PushNotifications.register();
+        await PushNotifications.register();
 
-      const regListener = await PushNotifications.addListener('registration', async (tokenData) => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await saveFcmToken(tokenData.value, session.access_token);
-        }
-      });
+        const regListener = await PushNotifications.addListener('registration', async (tokenData) => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              await saveFcmToken(tokenData.value, session.access_token);
+            }
+          } catch {}
+        });
 
-      cleanup = () => { regListener.remove(); };
+        cleanup = () => { regListener.remove(); };
+      } catch (e) {
+        console.warn('[FCM] registration failed:', e);
+      }
     })();
 
     return () => { cleanup?.(); };

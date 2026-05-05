@@ -186,7 +186,7 @@ export default function ExplorePage() {
     { id: "all", label: t.explore.all, icon: Sparkles, color: "bg-indigo-500" },
     ...Object.entries(CATEGORY_META).map(([id, meta]) => ({
       id,
-      label: t.poll.categories[id as keyof typeof t.poll.categories]?.label || meta.label,
+      label: t.poll.categories[id as keyof typeof t.poll.categories]?.label || id,
       icon: meta.icon,
       color: "",
     })),
@@ -194,7 +194,7 @@ export default function ExplorePage() {
 
   const filteredPacks = packs.filter((p) => {
     const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
-    const tLabel = t.poll.categories[p.category as keyof typeof t.poll.categories]?.label || CATEGORY_META[p.category]?.label || "";
+    const tLabel = t.poll.categories[p.category as keyof typeof t.poll.categories]?.label || p.category;
     const matchesSearch =
       search === "" ||
       tLabel.toLowerCase().includes(search.toLowerCase());
@@ -312,7 +312,7 @@ export default function ExplorePage() {
                   {t.explore.launchInGroup}
                 </h2>
                 <p className="text-slate-400 text-xs mt-0.5">
-                  {t.explore.chooseGroup.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || (CATEGORY_META[selectingPack]?.label ?? selectingPack))}
+                  {t.explore.chooseGroup.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || selectingPack)}
                 </p>
               </div>
               <button
@@ -356,7 +356,7 @@ export default function ExplorePage() {
                         }
                         const q = await questionService.getRandomQuestion(group.id, members.length, selectingPack);
                         if (!q) {
-                          toast.error(t.explore.noQuestions.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || (CATEGORY_META[selectingPack]?.label ?? selectingPack)));
+                          toast.error(t.explore.noQuestions.replace("{cat}", t.poll.categories[selectingPack as keyof typeof t.poll.categories]?.label || selectingPack));
                           setLaunching(false);
                           return;
                         }

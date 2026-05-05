@@ -80,8 +80,13 @@ export default function AuthPage() {
               </p>
             </div>
           </div>
+        </div>
+        
+        {/* Fixed Language Selector */}
+        <div className="fixed top-6 right-6 z-[60]">
           <LanguageSelector />
         </div>
+
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

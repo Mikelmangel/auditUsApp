@@ -246,4 +246,4 @@ INSERT INTO public.questions (text, mode, category, options, is_anonymous, min_m
 ('Wer wäre der am meisten gefürchtete Richter, wenn {group_name} ein Gericht hätte?', 'poll', 'humor', NULL, false, 2, 'de', ARRAY['😂']::text[], true)
 ('Wer in {group_name} würde den Gruppennamen ändern, ohne es jemandem zu sagen?', 'poll', 'humor', NULL, false, 2, 'de', ARRAY['😂']::text[], true)
 ('Wer würde diesen gleichen Poll screenshotten und außerhalb der Gruppe senden?', 'poll', 'humor', NULL, false, 2, 'de', ARRAY['😂']::text[], true)
-('Wer in {group_name} würde das beste Treffen organisieren und wer würde es unmöglich machen?', 'poll', 'eventos', NULL, false, 2, 'de', '🎉');
+('Wer in {group_name} würde das beste Treffen organisieren und wer würde es unmöglich machen?', 'poll', 'eventos', NULL, false, 2, 'de', ARRAY['🎉']::text[], true);

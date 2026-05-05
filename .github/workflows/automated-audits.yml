@@ -2,24 +2,38 @@ name: Automated AuditUs Cycles
 
 on:
   schedule:
-    # Every 6h: 05,11,17,23 UTC — Questions
+    # Questions: every 6h at 05,11,17,23 UTC
     - cron: '0 5,11,17,23 * * *'
-    # Every 6h: 06,12,18,00 UTC — Summary (closes polls)
+    # Summary (closes polls): every 6h at 06,12,18,00 UTC
     - cron: '0 6,12,18,0 * * *'
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which cron to run'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - questions
+          - summary
 
 jobs:
   automation:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Automated Questions
-        if: github.event.schedule == '0 5,10,15 * * *'
+        if: >
+          github.event.schedule == '0 5,11,17,23 * * *' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'questions' || github.event.inputs.job == 'both'))
         run: |
-          curl -f -X GET "https://auditus-app.vercel.app/api/cron/questions" \
+          curl -f -X GET "https://www.auditus.fun/api/cron/questions" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
       - name: Trigger Daily Summary
-        if: github.event.schedule == '0 18 * * *' || github.event_name == 'workflow_dispatch'
+        if: >
+          github.event.schedule == '0 6,12,18,0 * * *' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'summary' || github.event.inputs.job == 'both'))
         run: |
-          curl -f -X GET "https://auditus-app.vercel.app/api/cron/summary" \
+          curl -f -X GET "https://www.auditus.fun/api/cron/summary" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
