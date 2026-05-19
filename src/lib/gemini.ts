@@ -11,24 +11,69 @@ export const gemini = {
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    
-    const prompt = `
-      Actúa como un "Auditor" sarcástico pero perspicaz para un grupo social llamado AuditUs.
-      Tu tarea es analizar los resultados de las encuestas y comentarios del periodo "${period}" para el grupo "${groupName}" y generar un resumen tipo "Auditoría".
-      
-      Reglas:
-      1. Tono: Divertido, un poco "roast", muy social y moderno. Usa jerga joven y emojis.
-      2. Estructura: 
-         - Un titular llamativo (ej: "ESTADO DE EMERGENCIA: CAOS TOTAL").
-         - Resumen del estado emocional/dinámica del grupo.
-         - El "Protagonista" o "Villano" (basado en quién recibió más votos o menciones).
-         - Una predicción o consejo irónico para el próximo periodo.
-      3. Sé conciso pero impactante.
-      4. Formato: Markdown (usa negritas, listas y bloques de cita).
-      
-      Datos del periodo:
-      ${JSON.stringify(data, null, 2)}
-    `;
+
+    // Build human-readable context from structured data
+    const { members = [], polls = [], nudges = [] } = data ?? {};
+
+    const pollsText = polls.length === 0
+      ? 'Sin encuestas hoy.'
+      : polls.map((p: any, i: number) => {
+          const resultLine = p.results?.length > 0
+            ? p.results.map((r: any) => `${r.name} (${r.votes} voto${r.votes !== 1 ? 's' : ''})`).join(', ')
+            : 'sin votos registrados';
+          const nonVotersLine = p.nonVoters?.length > 0
+            ? `No votaron: ${p.nonVoters.join(', ')}`
+            : 'Participación completa ✓';
+          const commentsLine = p.comments?.length > 0
+            ? `Comentarios: ${p.comments.map((c: any) => `"${c.content}" (${c.author})`).join(' | ')}`
+            : '';
+          return [
+            `${i + 1}. "${p.question}" [${p.type ?? 'poll'}]`,
+            `   Participación: ${p.voters?.length ?? 0}/${members.length} (${p.participationPct ?? 0}%)`,
+            `   Resultados: ${resultLine}`,
+            `   ${nonVotersLine}`,
+            commentsLine ? `   ${commentsLine}` : '',
+          ].filter(Boolean).join('\n');
+        }).join('\n\n');
+
+    const nudgesText = nudges.length === 0
+      ? 'Ningún zumbido — todos respondieron por voluntad propia.'
+      : nudges.map((n: any) => `• ${n.sender} zumbó a ${n.receiver}`).join('\n');
+
+    const prompt = `Eres el "Auditor Oficial" de "${groupName}", un jurado sarcástico y divertido al estilo reality show.
+
+━━━ DATOS DEL DÍA ━━━
+Miembros del grupo (${members.length}): ${members.join(', ')}
+
+📊 ENCUESTAS (${polls.length}):
+${pollsText}
+
+🔔 ZUMBIDOS:
+${nudgesText}
+━━━━━━━━━━━━━━━━━━━━━
+
+Genera el informe de auditoría en Markdown. Sigue esta estructura EXACTA:
+
+## 📋 ESTADO DEL GRUPO
+Una o dos frases sobre el ambiente general del día. Cita datos reales (participación, número de encuestas).
+
+## 🏆 PROTAGONISTA DEL DÍA
+Quién recibió más votos en total entre todas las encuestas. Nombra a la persona, di cuántos votos, añade un comentario gracioso.
+
+## 😴 VERGÜENZA DEL DÍA
+Quién participó menos (no votó en más encuestas). Si todos votaron en todo, celébralo con sarcasmo positivo.
+
+## 🔔 ZUMBIDOS
+Si hubo zumbidos, menciona a los "morosos" que necesitaron recordatorio. Si no hubo, celebra la autodisciplina.
+
+## 🔮 VEREDICTO FINAL
+Predicción irónica o consejo para mañana. Máximo 2 frases.
+
+REGLAS:
+- Usa los nombres REALES de los datos. No inventes ni supongas nada.
+- Tono: sarcástico, humor amistoso tipo roast, como un presentador de reality.
+- Máximo 280 palabras en total.
+- Emojis con moderación (solo los de los encabezados más 1-2 extra máximo).`;
 
     try {
       const result = await model.generateContent(prompt);

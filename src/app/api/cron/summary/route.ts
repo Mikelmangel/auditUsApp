@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         }
         // ── END BATTLE ROYALE LOGIC ──
 
-        if (stats && stats.length > 0) {
+        if (stats && stats.polls?.length > 0) {
           const auditContent = await gemini.generateSummary("Hoy", group.name, stats);
           await summaryService.createSummary(group.id, "daily", auditContent + battleRoyaleContext, stats);
           results.push({ groupId: group.id, status: 'success' });

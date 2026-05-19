@@ -191,17 +191,22 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   };
 
   const generateAudit = async () => {
-    if (!group) return;
+    if (!group || !isAdmin) return;
     setGenerating(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`/api/groups/${group.id}/audit`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session && { Authorization: `Bearer ${session.access_token}` }),
+        },
         body: JSON.stringify({ groupName: group.name }),
       });
-      if (!res.ok) throw new Error(t.group.auditError);
-      const newSummary = await res.json();
-      setSummaries(prev => [newSummary, ...prev]);
-      toast.success(t.group.pollLaunched); // Using same success for simplicity or add specific
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || t.group.auditError);
+      setSummaries(prev => [body, ...prev]);
+      toast.success(t.group.auditReport);
     } catch (e: any) {
       toast.error(e.message || t.group.auditError);
     } finally {
@@ -771,18 +776,29 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 className="flex flex-col gap-6"
               >
                 <HistoryNavigator />
-                {isTodayDate(selectedDate) && (
-                  <Button
-                    onClick={generateAudit}
-                    loading={generating}
-                    disabled={pollCount < 1}
-                    variant="secondary"
-                    className="h-16 border-dashed border-indigo-200"
-                  >
-                    {!generating && <Sparkles size={18} className="text-indigo-600" />}
-                    {generating ? t.group.generatingAudit : t.group.generateAudit}
-                  </Button>
-                )}
+                {isAdmin && isTodayDate(selectedDate) && (() => {
+                  const todayHasSummary = summaries.some(
+                    s => new Date(s.created_at).toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
+                  );
+                  if (todayHasSummary) return (
+                    <div className="flex items-center justify-center gap-2 py-3 rounded-[20px] bg-indigo-50 border border-indigo-100">
+                      <Sparkles size={14} className="text-indigo-400" />
+                      <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">{t.group.auditReport} · {t.group.generatingAudit.replace("...", "")} ✓</span>
+                    </div>
+                  );
+                  return (
+                    <Button
+                      onClick={generateAudit}
+                      loading={generating}
+                      disabled={pollCount < 1}
+                      variant="secondary"
+                      className="h-16 border-dashed border-indigo-200"
+                    >
+                      {!generating && <Sparkles size={18} className="text-indigo-600" />}
+                      {generating ? t.group.generatingAudit : t.group.generateAudit}
+                    </Button>
+                  );
+                })()}
                 {(() => {
                   const daySummary = summaries.find(s => new Date(s.created_at).toISOString().split("T")[0] === selectedDate);
                   const dayPolls   = polls.filter(p => new Date(p.created_at).toISOString().split('T')[0] === selectedDate);

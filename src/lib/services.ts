@@ -583,6 +583,19 @@ export const summaryService = {
     return data;
   },
 
+  async hasTodaySummary(groupId: string): Promise<boolean> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from('group_summaries')
+      .select('id')
+      .eq('group_id', groupId)
+      .eq('period', 'daily')
+      .gte('created_at', todayStart.toISOString())
+      .limit(1);
+    return (data?.length ?? 0) > 0;
+  },
+
   async createSummary(groupId: string, period: 'daily' | 'weekly' | 'monthly' | 'annual', content: string, metadata: any) {
     const { data, error } = await supabase
       .from('group_summaries')
@@ -597,42 +610,84 @@ export const summaryService = {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
+    // Active members
+    const { data: memberRows } = await supabase
+      .from('group_members')
+      .select('profile_id, profiles(username)')
+      .eq('group_id', groupId)
+      .eq('status', 'active');
+
+    const nameMap: Record<string, string> = {};
+    (memberRows ?? []).forEach((m: any) => {
+      if (m.profiles?.username) nameMap[m.profile_id] = m.profiles.username;
+    });
+    const allIds = Object.keys(nameMap);
+    const memberNames = Object.values(nameMap);
+
+    // Today's polls with votes (voter_id + target_id) and comments
     const { data: polls } = await supabase
       .from('polls')
-      .select('*, votes(target_id), comments(content, profiles(username))')
+      .select('id, question, rendered_question, poll_type, votes(voter_id, target_id), comments(content, profiles(username))')
       .eq('group_id', groupId)
       .gte('created_at', todayStart.toISOString())
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Fetch members to map UUID to username
-    const { data: members } = await supabase
-      .from('group_members')
-      .select('profile_id, profiles(username)')
-      .eq('group_id', groupId);
-
-    const nameMap: Record<string, string> = {};
-    if (members) {
-      members.forEach((m: any) => {
-        if (m.profiles?.username) {
-          nameMap[m.profile_id] = m.profiles.username;
-        }
-      });
+    // Today's nudges via poll_ids
+    const pollIds = (polls ?? []).map((p: any) => p.id);
+    let nudgeRows: any[] = [];
+    if (pollIds.length > 0) {
+      const { data: nd } = await supabase
+        .from('nudges')
+        .select('sender_id, receiver_id, sender:profiles!nudges_sender_id_fkey(username), receiver:profiles!nudges_receiver_id_fkey(username)')
+        .in('poll_id', pollIds)
+        .gte('created_at', todayStart.toISOString());
+      nudgeRows = nd ?? [];
     }
 
-    // Replace target_id with usernames in votes
-    if (polls) {
-      polls.forEach(poll => {
-        if (poll.votes) {
-          poll.votes = poll.votes.map((v: any) => ({
-            target_username: nameMap[v.target_id] || v.target_id
-          }));
-        }
-      });
-    }
+    // Build structured poll stats
+    const pollStats = (polls ?? []).map((p: any) => {
+      const votes: { voter_id: string; target_id: string }[] = p.votes ?? [];
 
-    return polls;
-  }
+      // Who voted
+      const voterIds = Array.from(new Set(votes.map(v => v.voter_id)));
+      const voterNames = voterIds.map(id => nameMap[id] ?? id);
+      const nonVoterNames = allIds.filter(id => !voterIds.includes(id)).map(id => nameMap[id]);
+
+      // Vote tally by target
+      const tally: Record<string, number> = {};
+      votes.forEach(v => {
+        const name = nameMap[v.target_id] ?? v.target_id;
+        tally[name] = (tally[name] ?? 0) + 1;
+      });
+      const results = Object.entries(tally)
+        .map(([name, count]) => ({ name, votes: count }))
+        .sort((a, b) => b.votes - a.votes);
+
+      const comments = (p.comments ?? []).map((c: any) => ({
+        content: c.content,
+        author: c.profiles?.username ?? '?',
+      }));
+
+      return {
+        question: p.rendered_question || p.question,
+        type: p.poll_type,
+        voters: voterNames,
+        nonVoters: nonVoterNames,
+        results,
+        comments,
+        participationPct: allIds.length > 0 ? Math.round(voterIds.length / allIds.length * 100) : 0,
+      };
+    });
+
+    // Nudge list
+    const nudges = nudgeRows.map(n => ({
+      sender: (n.sender as any)?.username ?? nameMap[n.sender_id] ?? '?',
+      receiver: (n.receiver as any)?.username ?? nameMap[n.receiver_id] ?? '?',
+    }));
+
+    return { members: memberNames, polls: pollStats, nudges };
+  },
 };
 
 // ─────────────────────────────────────────────
