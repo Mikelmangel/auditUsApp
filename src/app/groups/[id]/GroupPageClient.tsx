@@ -53,10 +53,10 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
   const calendarStripRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
-    const today = node.children[13] as HTMLElement;
-    if (today) {
-      node.scrollLeft = today.offsetLeft - node.clientWidth / 2 + today.clientWidth / 2;
-    }
+    requestAnimationFrame(() => {
+      // today is always the last item (index 13) — scroll to end
+      node.scrollLeft = node.scrollWidth;
+    });
   }, []);
   const { user } = useAuth();
   const router = useRouter();
