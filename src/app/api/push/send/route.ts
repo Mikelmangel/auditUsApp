@@ -34,25 +34,26 @@ export async function POST(req: NextRequest) {
       .select('subscription, platform')
       .eq('user_id', receiverId);
 
-    if (error || !subs?.length) return NextResponse.json({ ok: true });
+    if (error || !subs?.length) {
+      console.log('[Push] no subscriptions for receiver:', receiverId);
+      return NextResponse.json({ ok: true });
+    }
 
-    await Promise.allSettled(
+    console.log('[Push] sending to', subs.length, 'subscription(s)');
+    const results = await Promise.allSettled(
       subs.map(({ subscription, platform }) => {
         if (platform === 'android' && subscription.fcm_token) {
+          console.log('[Push] sending FCM to token:', subscription.fcm_token.substring(0, 20) + '...');
+          // Data-only message → onMessageReceived always called (foreground/background/killed)
+          // Our FcmService.java builds the notification with the correct icon (ic_notification)
           return getMessaging().send({
             token: subscription.fcm_token,
-            notification: {
+            android: { priority: 'high' },
+            data: {
               title: payload.title || '¡Zumbido!',
               body: payload.body || 'Te están esperando para votar.',
+              url: payload.url || '/',
             },
-            android: {
-              notification: {
-                channelId: 'nudges',
-                priority: 'high',
-                defaultVibrateTimings: true,
-              },
-            },
-            data: { url: payload.url || '/' },
           });
         }
         return webpush.sendNotification(
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
         );
       })
     );
+
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error('[Push] send failed for sub', i, ':', r.reason);
+      else console.log('[Push] send ok for sub', i, ':', r.value);
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {

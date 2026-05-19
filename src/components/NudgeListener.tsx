@@ -17,8 +17,8 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
-async function saveFcmToken(token: string, accessToken: string) {
-  await fetch('/api/push/subscribe', {
+async function saveFcmToken(token: string, accessToken: string): Promise<number> {
+  const res = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,6 +26,7 @@ async function saveFcmToken(token: string, accessToken: string) {
     },
     body: JSON.stringify({ fcmToken: token }),
   });
+  return res.status;
 }
 
 async function saveWebSubscription(userId: string) {
@@ -54,6 +55,7 @@ async function saveWebSubscription(userId: string) {
 export function NudgeListener() {
   const { user } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   // Web: register service worker
   useEffect(() => {
@@ -62,11 +64,11 @@ export function NudgeListener() {
     }
   }, []);
 
-  // Native: register FCM token
+  // Native: register FCM token (depends on user.id only to avoid re-runs on object re-render)
   useEffect(() => {
-    if (!user || !Capacitor.isNativePlatform()) return;
+    if (!user?.id || !Capacitor.isNativePlatform()) return;
 
-    let cleanup: (() => void) | undefined;
+    let listeners: Array<{ remove: () => void }> = [];
 
     (async () => {
       try {
@@ -75,31 +77,48 @@ export function NudgeListener() {
         const permResult = await PushNotifications.requestPermissions();
         if (permResult.receive !== 'granted') return;
 
-        await PushNotifications.register();
+        // Create high-importance channel so background notifications show as popup
+        await PushNotifications.createChannel({
+          id: 'nudges',
+          name: 'Zumbidos',
+          description: 'Notificaciones de zumbidos',
+          importance: 5,
+          vibration: true,
+          sound: 'default',
+          visibility: 1,
+        });
 
         const regListener = await PushNotifications.addListener('registration', async (tokenData) => {
           try {
+            console.log('[FCM] token:', tokenData.value.substring(0, 20) + '...');
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.access_token) {
-              await saveFcmToken(tokenData.value, session.access_token);
+              const res = await saveFcmToken(tokenData.value, session.access_token);
+              console.log('[FCM] token saved, status:', res);
             }
-          } catch {}
+          } catch (e) {
+            console.warn('[FCM] save token failed:', e);
+          }
         });
 
-        cleanup = () => { regListener.remove(); };
+        const errListener = await PushNotifications.addListener('registrationError', (err) => {
+          console.error('[FCM] registration error:', err);
+        });
+
+        listeners = [regListener, errListener];
+
+        await PushNotifications.register();
       } catch (e) {
         console.warn('[FCM] registration failed:', e);
       }
     })();
 
-    return () => { cleanup?.(); };
-  }, [user]);
+    return () => { listeners.forEach(l => l.remove()); };
+  }, [user?.id]);
 
   // Web: handle push permission
   useEffect(() => {
     if (!user || Capacitor.isNativePlatform() || typeof window === 'undefined' || !('Notification' in window)) return;
-
-    const { t } = useLanguage();
 
     if (Notification.permission === 'granted') {
       saveWebSubscription(user.id);
@@ -121,7 +140,6 @@ export function NudgeListener() {
 
   useEffect(() => {
     if (!user) return;
-    const { t } = useLanguage();
 
     const processNudges = async (nudges: any[]) => {
       native.haptics.notification(NotificationType.Warning);
@@ -166,6 +184,83 @@ export function NudgeListener() {
 
     return () => { supabase.removeChannel(sub); };
   }, [user, router]);
+
+  // ── Battle Royale real-time elimination listener ──
+  useEffect(() => {
+    if (!user) return;
+
+    const brSub = supabase.channel(`battle-royale-${user.id}-${Math.random().toString(36).substring(7)}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "survival_participants",
+        filter: `is_eliminated=eq.true`,
+      }, async (payload) => {
+        const eliminated = payload.new as any;
+        if (!eliminated.is_eliminated) return;
+
+        // Fetch the eliminated user's profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', eliminated.profile_id)
+          .single();
+
+        const name = profile?.username || '???';
+
+        if (eliminated.profile_id === user.id) {
+          // YOU were eliminated
+          native.haptics.notification(NotificationType.Error);
+          document.body.classList.add("shake-animation");
+          setTimeout(() => document.body.classList.remove("shake-animation"), 800);
+
+          toast.error(`💀 ${t.group.battleEliminated.replace("{round}", String(eliminated.eliminated_round || '?'))}`, {
+            description: t.group.battleSpectator,
+            duration: 10000,
+          });
+        } else {
+          // Someone else was eliminated
+          native.haptics.notification(NotificationType.Warning);
+          toast(`⚔️ ${name} — ${t.group.battleEliminated.replace("{round}", String(eliminated.eliminated_round || '?'))}`, {
+            duration: 6000,
+          });
+        }
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "survival_games",
+      }, async (payload) => {
+        const game = payload.new as any;
+
+        // Winner crowned
+        if (game.status === 'finished' && game.winner_id) {
+          const { data: winner } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', game.winner_id)
+            .single();
+
+          const winnerName = winner?.username || '???';
+          native.haptics.notification(NotificationType.Success);
+          toast.success(t.group.battleCrowned.replace("{name}", winnerName), {
+            duration: 12000,
+          });
+        }
+
+        // Final duel started
+        if (game.phase === 'final_duel') {
+          native.haptics.notification(NotificationType.Warning);
+          toast(t.group.battleFinalDuel, {
+            description: t.group.battleFinalDuelDesc,
+            duration: 8000,
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(brSub); };
+  }, [user, t]);
 
   return null;
 }

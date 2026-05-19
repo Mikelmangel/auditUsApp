@@ -14,12 +14,18 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  // Native FCM token
+  // Native FCM token — delete old + insert new (one active token per user)
   if (body.fcmToken) {
-    const { error } = await adminSupabase.from('push_subscriptions').upsert(
-      { user_id: user.id, subscription: { fcm_token: body.fcmToken }, platform: 'android' },
-      { onConflict: 'user_id,subscription->fcm_token' }
-    );
+    await adminSupabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('platform', 'android');
+
+    const { error } = await adminSupabase
+      .from('push_subscriptions')
+      .insert({ user_id: user.id, subscription: { fcm_token: body.fcmToken }, platform: 'android' });
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
@@ -28,10 +34,19 @@ export async function POST(req: NextRequest) {
   const { subscription } = body;
   if (!subscription?.endpoint) return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
 
-  const { error } = await adminSupabase.from('push_subscriptions').upsert(
-    { user_id: user.id, subscription, platform: 'web' },
-    { onConflict: 'user_id,endpoint' }
-  );
+  await adminSupabase
+    .from('push_subscriptions')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('platform', 'web')
+    .filter('subscription->>endpoint', 'eq', subscription.endpoint);
+
+  const { error } = await adminSupabase
+    .from('push_subscriptions')
+    .upsert(
+      { user_id: user.id, subscription, platform: 'web' },
+      { onConflict: 'user_id,platform' }
+    );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

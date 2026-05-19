@@ -20,11 +20,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const count = parseInt(body.count) || 10;
     const category = body.category || "humor";
+    const language = body.language || "es";
+
+    const LANG_INSTRUCTIONS: Record<string, string> = {
+      es: "Escribe las preguntas en español de España, con tono coloquial y moderno.",
+      en: "Write the questions in casual modern English.",
+      it: "Scrivi le domande in italiano colloquiale e moderno.",
+      pt: "Escreva as perguntas em português do Brasil, com tom coloquial e moderno.",
+      fr: "Écris les questions en français familier et moderne.",
+      de: "Schreibe die Fragen in umgangssprachlichem, modernem Deutsch.",
+    };
+
+    const langInstruction = LANG_INSTRUCTIONS[language] || LANG_INSTRUCTIONS.es;
 
     // Build the AI Prompt
     const prompt = `
 Eres el guionista principal de AuditUs, una app social donde grupos de amigos votan en minijuegos.
 Genera exactamente ${count} preguntas para la categoría "${category}".
+${langInstruction}
 Usa obligatoriamente los placeholders: {member_A}, {member_B} o {group_name} si la pregunta lo requiere, pero NO todos los modos los necesitan. 
 No uses placeholders inventados, SOLO {member_A}, {member_B} y {group_name}.
 
@@ -36,7 +49,9 @@ Los modos disponibles son:
 - 'free' (respuesta libre). Ej: "¿Cuál es vuestra anécdota favorita del peor viaje que hemos hecho?"
 - 'ranking' (ordenamiento del grupo). Ej: "Ordena a los participantes del más callado al más fiestero."
 
-El nivel de las preguntas debe ser divertido, conversacional, moderno (español de España) y amigable pero con "salseo" (picante lúdico).
+El nivel de las preguntas debe ser divertido, conversacional, moderno y amigable pero con "salseo" (picante lúdico).
+Mezcla modos variados (vs, poll, mc, scale, free, ranking) de forma equilibrada.
+NO REPITAS preguntas similares. Cada pregunta debe ser ÚNICA y ORIGINAL.
 
 DEVUELVE ÚNICA Y EXCLUSIVAMENTE UN ARRAY JSON VÁLIDO CON ESTA ESTRUCTURA DE typescript (NO añadas \`\`\`json ni texto extra):
 [
@@ -44,6 +59,7 @@ DEVUELVE ÚNICA Y EXCLUSIVAMENTE UN ARRAY JSON VÁLIDO CON ESTA ESTRUCTURA DE ty
     "text": "¿Quién es más ordenado, {member_A} o {member_B}?",
     "mode": "vs",
     "category": "${category}",
+    "language": "${language}",
     "options": null,
     "is_anonymous": false,
     "min_members": 2,

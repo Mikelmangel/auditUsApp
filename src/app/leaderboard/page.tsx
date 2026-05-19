@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Crown, Flame, Ghost, Trophy, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -36,8 +38,7 @@ export default function LeaderboardPage() {
     groupService.getGroupMembers(selectedGroup.id).then(m => {
       const sorted = [...m]
         .filter(x => x.profiles)
-        .sort((a, b) => (b.profiles.points || 0) - (a.profiles.points || 0))
-        .slice(0, 5);
+        .sort((a, b) => (b.group_points || 0) - (a.group_points || 0));
       setMembers(sorted);
       setLoadingMembers(false);
     });
@@ -134,7 +135,9 @@ export default function LeaderboardPage() {
           <div className="flex flex-col items-center justify-center py-24 bg-white/50 border-2 border-dashed border-slate-100 rounded-[40px]">
             <Ghost size={40} className="text-slate-200 mb-4" />
             <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">
-              Únete a un grupo<br />para ver el ranking
+              {t.common.joinGroupForRanking.split('\n').map((line: string, i: number) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </p>
           </div>
         ) : loadingMembers ? (
@@ -145,7 +148,7 @@ export default function LeaderboardPage() {
           <div className="flex flex-col items-center justify-center py-24 bg-white/50 border-2 border-dashed border-slate-100 rounded-[40px]">
             <Ghost size={40} className="text-slate-200 mb-4" />
             <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-              Sin miembros activos
+              {t.common.noActiveMembers}
             </p>
           </div>
         ) : (
@@ -207,7 +210,7 @@ export default function LeaderboardPage() {
                             isFirst ? "bg-indigo-50 border-indigo-100 text-indigo-600" : "bg-white border-slate-100 text-slate-400"
                           )}>
                             <Zap size={8} className={isFirst ? "fill-indigo-500" : "fill-slate-300"} />
-                            <span className="font-inter text-[9px] font-black">{p.points || 0}</span>
+                            <span className="font-inter text-[9px] font-black">{m.group_points || 0}</span>
                           </div>
                         </div>
 
@@ -268,12 +271,12 @@ export default function LeaderboardPage() {
                           <div className="flex items-center gap-1.5 mb-0.5">
                             <span className="font-jakarta font-black text-slate-900 truncate text-sm">{p.username}</span>
                             {isMe && (
-                              <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest">Tú</span>
+                              <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-widest">{t.common.you}</span>
                             )}
                           </div>
                           <div className="flex gap-3">
                             <span className="font-inter text-[10px] font-black flex items-center gap-1 text-slate-400">
-                              <Zap size={9} className="text-indigo-500 fill-indigo-500" /> {p.points || 0}
+                              <Zap size={9} className="text-indigo-500 fill-indigo-500" /> {m.group_points || 0}
                             </span>
                             <span className="font-inter text-[10px] font-black flex items-center gap-1 text-slate-400">
                               <Flame size={9} className="text-amber-500 fill-amber-500" /> {p.current_streak || 0}

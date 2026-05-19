@@ -20,45 +20,60 @@ export async function GET(request: Request) {
 
         const stats = await summaryService.getSummaryStats(group.id);
 
-        if (stats && stats.length > 0) {
-          // --- BEGIN SURVIVAL ELIMINATION LOGIC ---
-          const activeGame = await survivalService.getActiveGame(group.id).catch(() => null);
-          let eliminatedUser: string | null = null;
+        // ── BATTLE ROYALE ELIMINATION LOGIC ──
+        let battleRoyaleContext = "";
+        const activeGame = await survivalService.getActiveGame(group.id).catch(() => null);
 
-          if (activeGame) {
-            const voteCounts: Record<string, number> = {};
-            stats.forEach(poll => {
-              poll.votes?.forEach((v: any) => {
-                voteCounts[v.target_id] = (voteCounts[v.target_id] || 0) + 1;
-              });
-            });
+        if (activeGame) {
+          try {
+            let eliminatedId: string | null = null;
 
-            let maxVotes = 0;
-            Object.entries(voteCounts).forEach(([userId, count]) => {
-              const participant = activeGame.participants.find((p: any) => p.profile_id === userId);
-              if (participant && !participant.is_eliminated && count > maxVotes) {
-                maxVotes = count;
-                eliminatedUser = userId;
+            if (activeGame.phase === 'final_duel') {
+              // Process final duel
+              const winnerId = await survivalService.processFinalDuel(activeGame.id);
+              if (winnerId) {
+                const winner = activeGame.participants.find(p => p.profile_id === winnerId);
+                const winnerName = winner?.profiles?.username || 'desconocido';
+                battleRoyaleContext = `\n\n🏆 BATTLE ROYALE FINALIZADO: ¡${winnerName} ha ganado el Battle Royale! Es el último superviviente. Celebra este evento épico con máximo dramatismo.`;
               }
-            });
+            } else if (activeGame.phase === 'voting') {
+              // Process normal round elimination
+              const result = await survivalService.processRoundElimination(activeGame.id);
+              eliminatedId = result.eliminatedId;
 
-            if (eliminatedUser) {
-              await survivalService.eliminateParticipant(activeGame.id, eliminatedUser);
+              if (eliminatedId) {
+                const eliminated = activeGame.participants.find(p => p.profile_id === eliminatedId);
+                const eliminatedName = eliminated?.profiles?.username || 'desconocido';
+                const alive = activeGame.participants.filter(p => !p.is_eliminated && p.profile_id !== eliminatedId);
 
-              const remaining = activeGame.participants.filter((p: any) => !p.is_eliminated && p.profile_id !== eliminatedUser);
-              if (remaining.length <= 1) {
-                await survivalService.finishGame(activeGame.id);
+                if (result.isFinished) {
+                  const winner = alive[0];
+                  const winnerName = winner?.profiles?.username || 'desconocido';
+                  battleRoyaleContext = `\n\n🏆 BATTLE ROYALE FINALIZADO: ${eliminatedName} fue eliminado y ¡${winnerName} es el CAMPEÓN! Celebra con máximo dramatismo.`;
+                } else if (alive.length === 2) {
+                  battleRoyaleContext = `\n\n⚔️ BATTLE ROYALE — DUELO FINAL: ${eliminatedName} fue eliminado en la Ronda ${activeGame.current_round}. Quedan solo 2 supervivientes: ${alive.map(a => a.profiles?.username).join(' vs ')}. ¡El duelo final comienza mañana!`;
+                } else {
+                  battleRoyaleContext = `\n\n💀 BATTLE ROYALE — Ronda ${activeGame.current_round}: ${eliminatedName} ha sido eliminado por votación popular. Quedan ${alive.length} supervivientes. Destaca este momento dramático.`;
+                }
+              } else {
+                battleRoyaleContext = `\n\n⚔️ BATTLE ROYALE — Ronda ${activeGame.current_round}: Nadie recibió votos, no hubo eliminación. La tensión crece...`;
               }
             }
+          } catch (brError: any) {
+            console.error(`Battle Royale error for group ${group.id}:`, brError.message);
           }
-          // --- END SURVIVAL LOGIC ---
+        }
+        // ── END BATTLE ROYALE LOGIC ──
 
-          const extraContext = eliminatedUser ? `\n\nATENCIÓN MODO SUPERVIVENCIA: Hemos eliminado a un participante hoy debido a que recibió la mayoría de los votos. Destaca este evento dramático.` : "";
-
+        if (stats && stats.length > 0) {
           const auditContent = await gemini.generateSummary("Hoy", group.name, stats);
-          await summaryService.createSummary(group.id, "daily", auditContent + extraContext, stats);
-
+          await summaryService.createSummary(group.id, "daily", auditContent + battleRoyaleContext, stats);
           results.push({ groupId: group.id, status: 'success' });
+        } else if (battleRoyaleContext) {
+          // Even without polls, generate a summary if Battle Royale events happened
+          const brSummary = `## ⚔️ Battle Royale Update\n${battleRoyaleContext.trim()}`;
+          await summaryService.createSummary(group.id, "daily", brSummary, {});
+          results.push({ groupId: group.id, status: 'battle_royale_only' });
         } else {
           results.push({ groupId: group.id, status: 'no_data_for_today' });
         }
@@ -72,3 +87,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

@@ -146,41 +146,28 @@ export default function ExplorePage() {
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [iaCustomUnlockedMap, setIaCustomUnlockedMap] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
     async function loadPacks() {
-      const { data } = await supabase
-        .from("questions")
-        .select("category, mode");
-
-      if (!data) {
-        setLoading(false);
-        return;
-      }
-
-      // Count per category
-      const counts: Record<string, number> = {};
-      for (const q of data) {
-        counts[q.category] = (counts[q.category] ?? 0) + 1;
-      }
-
-      const categories = Object.keys(CATEGORY_META);
-      const packList = categories
-        .filter((cat) => cat !== "general")
-        .map((cat) => ({
-          category: cat,
-          count: counts[cat] ?? 0,
-          isNew: cat === "ia_custom",
-        }))
-        .filter((p) => p.count > 0);
-
-      setPacks(packList);
+      const baseLang = language.includes("-") ? language.split("-")[0] : language;
+      const categories = Object.keys(CATEGORY_META).filter((c) => c !== "general");
+      const results = await Promise.all(
+        categories.map(async (cat) => {
+          const { count } = await supabase
+            .from("questions")
+            .select("*", { count: "exact", head: true })
+            .eq("category", cat)
+            .eq("language", baseLang);
+          return { category: cat, count: count ?? 0, isNew: cat === "ia_custom" };
+        })
+      );
+      setPacks(results.filter((p) => p.count > 0));
       setLoading(false);
     }
     loadPacks();
-  }, []);
+  }, [language]);
 
   const allCategories = [
     { id: "all", label: t.explore.all, icon: Sparkles, color: "bg-indigo-500" },
