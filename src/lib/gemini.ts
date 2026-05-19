@@ -10,7 +10,7 @@ export const gemini = {
       return "Configura la API Key de Gemini para activar las auditorías.";
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     
     const prompt = `
       Actúa como un "Auditor" sarcástico pero perspicaz para un grupo social llamado AuditUs.
@@ -44,7 +44,7 @@ export const gemini = {
       throw new Error("API Key missing");
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     const prompt = `
       Actúa como el motor de IA de AuditUs, una app social de encuestas entre amigos.
