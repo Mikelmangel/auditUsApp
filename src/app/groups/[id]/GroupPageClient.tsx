@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -51,7 +51,13 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [survivalVoting,   setSurvivalVoting]   = useState(false);
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
-  const calendarStripRef = useRef<HTMLDivElement>(null);
+  const calendarStripRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const today = node.children[13] as HTMLElement;
+    if (today) {
+      node.scrollLeft = today.offsetLeft - node.clientWidth / 2 + today.clientWidth / 2;
+    }
+  }, []);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -91,16 +97,6 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     };
     load();
   }, [params, user]);
-
-  useEffect(() => {
-    if (!isCalendarOpen && calendarStripRef.current) {
-      const container = calendarStripRef.current;
-      const today = container.children[13] as HTMLElement;
-      if (today) {
-        container.scrollLeft = today.offsetLeft - container.clientWidth / 2 + today.clientWidth / 2;
-      }
-    }
-  }, [isCalendarOpen, loading]);
 
   /* ── Actions ── */
   const copyCode = async () => {
