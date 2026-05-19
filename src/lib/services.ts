@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { gemini } from './gemini';
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -44,6 +43,7 @@ export type GroupMember = {
   role: 'creator' | 'admin' | 'member';
   status: 'active' | 'banned';
   joined_at: string;
+  group_points: number;
   profiles: Profile;
 };
 
@@ -51,7 +51,7 @@ export type QuestionCategory =
   | 'humor' | 'habilidades' | 'futuro' | 'atrevidas' 
   | 'hipoteticas' | 'vinculos' | 'eventos' | 'ia_custom' | 'general';
 
-export type QuestionMode = 'vs' | 'poll' | 'mc' | 'scale' | 'free' | 'ranking' | 'pool' | 'boolean' | 'ranked';
+export type QuestionMode = 'vs' | 'poll' | 'mc' | 'scale' | 'free' | 'ranking' | 'ranked';
 
 export type Poll = {
   id: string;
@@ -241,7 +241,7 @@ export const groupService = {
   async getGroupMembers(groupId: string): Promise<GroupMember[]> {
     const { data, error } = await supabase
       .from('group_members')
-      .select('profile_id, group_id, role, status, joined_at, profiles(id, username, avatar_url, points, current_streak)')
+      .select('profile_id, group_id, role, status, joined_at, group_points, profiles(id, username, avatar_url, points, current_streak)')
       .eq('group_id', groupId)
       .eq('status', 'active')
       .order('joined_at', { ascending: true });
@@ -291,33 +291,14 @@ export const groupService = {
 // INTERNAL HELPERS
 // ─────────────────────────────────────────────
 
+async function updateGroupPoints(userId: string, groupId: string, amount: number) {
+  // Atomic: group points updated via RPC (race-safe)
+  await supabase.rpc('add_group_points', { p_user_id: userId, p_group_id: groupId, p_amount: amount });
+}
+
 async function updateStreakAndPoints(voterId: string) {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('current_streak, last_voted_at, points')
-    .eq('id', voterId)
-    .single();
-
-  if (!profile) return;
-  const now = new Date();
-  const lastVote = profile.last_voted_at ? new Date(profile.last_voted_at) : null;
-  let newStreak = profile.current_streak || 0;
-
-  if (!lastVote) {
-    newStreak = 1;
-  } else {
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const last = new Date(lastVote.getFullYear(), lastVote.getMonth(), lastVote.getDate());
-    const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 1) newStreak += 1;
-    else if (diffDays > 1) newStreak = 1;
-  }
-
-  await supabase.from('profiles').update({
-    current_streak: newStreak,
-    last_voted_at: now.toISOString(),
-    points: (profile.points || 0) + 10,
-  }).eq('id', voterId);
+  // Atomic: streak + points updated in a single SQL transaction (race-safe)
+  await supabase.rpc('update_streak_and_points', { p_user_id: voterId, p_points: 10 });
 }
 
 // ─────────────────────────────────────────────
@@ -335,7 +316,7 @@ export const pollService = {
       .gt('expires_at', new Date().toISOString());
       
     if (count && count >= 5) {
-      throw new Error("Límite de 5 encuestas activas alcanzado.");
+      throw new Error("Active poll limit reached (5 max).");
     }
 
     // Get group members for placeholder substitution
@@ -431,15 +412,10 @@ export const pollService = {
       .eq('target_id', resolvedTargetId);
       
     if (winningVotes && winningVotes.length > 0) {
-      const winnerIds = winningVotes.map(v => v.voter_id);
-      
-      // Need manual query or loop for updates due to Supabase JS limits with in/update points
-      for (const wid of winnerIds) {
-        const { data: profile } = await supabase.from('profiles').select('points').eq('id', wid).single();
-        if (profile) {
-          await supabase.from('profiles').update({ points: profile.points + 50 }).eq('id', wid);
-        }
-      }
+      // Atomic: add 50 points per winner via RPC (race-safe)
+      await Promise.all(
+        winningVotes.map(v => supabase.rpc('add_points', { p_user_id: v.voter_id, p_amount: 50 }))
+      );
     }
   },
 
@@ -458,7 +434,9 @@ export const pollService = {
       .from('votes')
       .insert([{ poll_id: pollId, voter_id: voterId, target_id: targetId }]);
     if (error) throw error;
+    const { data: poll } = await supabase.from('polls').select('group_id').eq('id', pollId).single();
     await updateStreakAndPoints(voterId);
+    if (poll?.group_id) await updateGroupPoints(voterId, poll.group_id, 10);
   },
 
   // Ranking mode: orderedMemberIds[0] = #1 position
@@ -467,7 +445,9 @@ export const pollService = {
       .from('votes')
       .insert([{ poll_id: pollId, voter_id: voterId, target_id: JSON.stringify(orderedMemberIds) }]);
     if (error) throw error;
+    const { data: poll } = await supabase.from('polls').select('group_id').eq('id', pollId).single();
     await updateStreakAndPoints(voterId);
+    if (poll?.group_id) await updateGroupPoints(voterId, poll.group_id, 10);
   },
 
   // Compute consensus ranking from all ranking votes
@@ -671,7 +651,18 @@ export const questionService = {
           .eq('group_id', groupId);
         
         const memberNames = members?.map((m: any) => m.profiles?.username).filter(Boolean) || [];
-        const aiQ = await gemini.generateQuestion('ia_custom', group?.name || 'AuditUs', memberNames, groupLanguage);
+        const aiRes = await fetch('/api/ai/question', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'ia_custom',
+            groupName: group?.name || 'AuditUs',
+            memberNames,
+            language: groupLanguage,
+          }),
+        });
+        if (!aiRes.ok) throw new Error('AI generation failed');
+        const aiQ = await aiRes.json();
         
         return {
           id: 'ai-' + Math.random().toString(36).substring(7),
@@ -825,30 +816,92 @@ export const groupUpgradeService = {
 };
 
 // ─────────────────────────────────────────────
-// SURVIVAL SERVICE
+// SURVIVAL SERVICE (Battle Royale v2)
 // ─────────────────────────────────────────────
 
+export type SurvivalGame = {
+  id: string;
+  group_id: string;
+  status: 'active' | 'finished';
+  phase: 'voting' | 'final_duel' | 'finished';
+  current_round: number;
+  total_rounds: number;
+  winner_id?: string;
+  created_at: string;
+  participants: SurvivalParticipant[];
+  survival_participants?: SurvivalParticipant[];
+};
+
+export type SurvivalParticipant = {
+  game_id: string;
+  profile_id: string;
+  is_eliminated: boolean;
+  eliminated_at?: string;
+  eliminated_round?: number;
+  final_position?: number;
+  points_earned: number;
+  is_immune: boolean;
+  profiles?: Profile;
+};
+
+export type SurvivalVote = {
+  id: string;
+  game_id: string;
+  round: number;
+  voter_id: string;
+  target_id: string;
+  created_at: string;
+};
+
 export const survivalService = {
-  async getActiveGame(groupId: string) {
+  // ── Fetch active game with participants + profiles ──
+  async getActiveGame(groupId: string): Promise<SurvivalGame | null> {
     const { data } = await supabase
       .from('survival_games')
-      .select('*, survival_participants(*)')
+      .select('*, survival_participants(*, profiles(id, username, avatar_url, points))')
       .eq('group_id', groupId)
       .eq('status', 'active')
       .single();
-    
+
     if (data) {
-      // Map it so the UI code doesn't break
-      data.participants = data.survival_participants;
+      data.participants = data.survival_participants || [];
     }
-    return data;
+    return data as SurvivalGame | null;
   },
 
-  async startSurvivalGame(groupId: string, memberIds: string[]) {
+  // ── Fetch a finished game by ID ──
+  async getGame(gameId: string): Promise<SurvivalGame | null> {
+    const { data } = await supabase
+      .from('survival_games')
+      .select('*, survival_participants(*, profiles(id, username, avatar_url, points))')
+      .eq('id', gameId)
+      .single();
+
+    if (data) {
+      data.participants = data.survival_participants || [];
+    }
+    return data as SurvivalGame | null;
+  },
+
+  // ── Start a new Battle Royale ──
+  async startSurvivalGame(groupId: string, memberIds: string[]): Promise<SurvivalGame> {
+    // Check no active game exists
+    const existing = await this.getActiveGame(groupId);
+    if (existing) throw new Error('Ya hay un Battle Royale activo en este grupo.');
+    if (memberIds.length < 4) throw new Error('Se necesitan al menos 4 miembros para iniciar un Battle Royale.');
+
+    const totalRounds = memberIds.length - 1; // N-1 rounds until 1 remains
+
     // 1. Create Game
     const { data: game, error: gameErr } = await supabase
       .from('survival_games')
-      .insert([{ group_id: groupId, status: 'active' }])
+      .insert([{
+        group_id: groupId,
+        status: 'active',
+        phase: 'voting',
+        current_round: 1,
+        total_rounds: totalRounds,
+      }])
       .select()
       .single();
     if (gameErr) throw gameErr;
@@ -858,15 +911,268 @@ export const survivalService = {
       game_id: game.id,
       profile_id: id,
       is_eliminated: false,
+      is_immune: false,
+      points_earned: 0,
     }));
     const { error: partErr } = await supabase
       .from('survival_participants')
       .insert(participants);
     if (partErr) throw partErr;
 
-    return game;
+    return { ...game, participants: participants as SurvivalParticipant[] };
   },
 
+  // ── Cast a survival vote ──
+  async castSurvivalVote(gameId: string, round: number, voterId: string, targetId: string) {
+    if (voterId === targetId) throw new Error('No puedes votarte a ti mismo.');
+
+    const { error } = await supabase
+      .from('survival_votes')
+      .insert([{ game_id: gameId, round, voter_id: voterId, target_id: targetId }]);
+
+    if (error) {
+      if (String(error.code) === '23505') throw new Error('Ya has votado en esta ronda.');
+      throw error;
+    }
+  },
+
+  // ── Check if user has voted this round ──
+  async hasVotedThisRound(gameId: string, round: number, userId: string): Promise<boolean> {
+    const { data } = await supabase
+      .from('survival_votes')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('round', round)
+      .eq('voter_id', userId)
+      .maybeSingle();
+    return !!data;
+  },
+
+  // ── Get vote results for a round ──
+  async getRoundVotes(gameId: string, round: number): Promise<Record<string, number>> {
+    const { data } = await supabase
+      .from('survival_votes')
+      .select('target_id')
+      .eq('game_id', gameId)
+      .eq('round', round);
+
+    if (!data) return {};
+    return data.reduce((acc: Record<string, number>, v) => {
+      acc[v.target_id] = (acc[v.target_id] || 0) + 1;
+      return acc;
+    }, {});
+  },
+
+  // ── Get total voters this round ──
+  async getRoundVoterCount(gameId: string, round: number): Promise<number> {
+    const { count } = await supabase
+      .from('survival_votes')
+      .select('*', { count: 'exact', head: true })
+      .eq('game_id', gameId)
+      .eq('round', round);
+    return count || 0;
+  },
+
+  // ── Get alive participants ──
+  async getAliveParticipants(gameId: string): Promise<SurvivalParticipant[]> {
+    const { data } = await supabase
+      .from('survival_participants')
+      .select('*, profiles(id, username, avatar_url, points)')
+      .eq('game_id', gameId)
+      .eq('is_eliminated', false);
+    return (data || []) as SurvivalParticipant[];
+  },
+
+  // ── Process round elimination (called by cron or manual trigger) ──
+  async processRoundElimination(gameId: string): Promise<{ eliminatedId: string | null; isFinished: boolean }> {
+    const game = await this.getGame(gameId);
+    if (!game || game.status !== 'active') return { eliminatedId: null, isFinished: false };
+
+    const alive = game.participants.filter(p => !p.is_eliminated);
+    const votes = await this.getRoundVotes(gameId, game.current_round);
+
+    // Find who got most votes (excluding immune players)
+    let maxVotes = 0;
+    let candidates: string[] = [];
+
+    Object.entries(votes).forEach(([targetId, count]) => {
+      const participant = alive.find(p => p.profile_id === targetId);
+      if (!participant || participant.is_immune) return;
+
+      if (count > maxVotes) {
+        maxVotes = count;
+        candidates = [targetId];
+      } else if (count === maxVotes) {
+        candidates.push(targetId);
+      }
+    });
+
+    // No votes cast → skip round (no elimination)
+    if (candidates.length === 0) {
+      await this.advanceRound(gameId);
+      return { eliminatedId: null, isFinished: false };
+    }
+
+    // Tie-breaker: random among tied
+    const eliminatedId = candidates[Math.floor(Math.random() * candidates.length)];
+    const position = alive.length; // e.g., if 5 alive, eliminated gets position 5
+
+    // Eliminate
+    await supabase
+      .from('survival_participants')
+      .update({
+        is_eliminated: true,
+        eliminated_at: new Date().toISOString(),
+        eliminated_round: game.current_round,
+        final_position: position,
+      })
+      .eq('game_id', gameId)
+      .eq('profile_id', eliminatedId);
+
+    // Give survival points to those who survived this round
+    for (const p of alive) {
+      if (p.profile_id !== eliminatedId) {
+        await supabase
+          .from('survival_participants')
+          .update({ points_earned: (p.points_earned || 0) + 25 })
+          .eq('game_id', gameId)
+          .eq('profile_id', p.profile_id);
+
+        // Add to global profile points
+        const { data: profile } = await supabase.from('profiles').select('points').eq('id', p.profile_id).single();
+        if (profile) {
+          await supabase.from('profiles').update({ points: (profile.points || 0) + 25 }).eq('id', p.profile_id);
+        }
+      }
+    }
+
+    const remaining = alive.filter(p => p.profile_id !== eliminatedId);
+
+    // Check if we should move to final duel or finish
+    if (remaining.length === 2) {
+      // Move to final duel
+      await supabase
+        .from('survival_games')
+        .update({ phase: 'final_duel', current_round: game.current_round + 1 })
+        .eq('id', gameId);
+      return { eliminatedId, isFinished: false };
+    }
+
+    if (remaining.length <= 1) {
+      // Game over — crown the last one
+      const winnerId = remaining[0]?.profile_id;
+      if (winnerId) await this.crownWinner(gameId, winnerId);
+      return { eliminatedId, isFinished: true };
+    }
+
+    // Advance to next round
+    await this.advanceRound(gameId);
+    return { eliminatedId, isFinished: false };
+  },
+
+  // ── Process final duel ──
+  async processFinalDuel(gameId: string): Promise<string | null> {
+    const game = await this.getGame(gameId);
+    if (!game || game.phase !== 'final_duel') return null;
+
+    const alive = game.participants.filter(p => !p.is_eliminated);
+    if (alive.length !== 2) return null;
+
+    const votes = await this.getRoundVotes(gameId, game.current_round);
+    const [a, b] = alive;
+    const votesA = votes[a.profile_id] || 0;
+    const votesB = votes[b.profile_id] || 0;
+
+    // The one with FEWER votes wins (votes = votes to eliminate)
+    // If tied, random
+    let winnerId: string;
+    let loserId: string;
+    if (votesA < votesB) {
+      winnerId = a.profile_id;
+      loserId = b.profile_id;
+    } else if (votesB < votesA) {
+      winnerId = b.profile_id;
+      loserId = a.profile_id;
+    } else {
+      // Tie — random
+      if (Math.random() < 0.5) {
+        winnerId = a.profile_id;
+        loserId = b.profile_id;
+      } else {
+        winnerId = b.profile_id;
+        loserId = a.profile_id;
+      }
+    }
+
+    // Mark loser as eliminated
+    await supabase
+      .from('survival_participants')
+      .update({
+        is_eliminated: true,
+        eliminated_at: new Date().toISOString(),
+        eliminated_round: game.current_round,
+        final_position: 2,
+        points_earned: 200,
+      })
+      .eq('game_id', gameId)
+      .eq('profile_id', loserId);
+
+    // Give runner-up 200 global points
+    const { data: loserProfile } = await supabase.from('profiles').select('points').eq('id', loserId).single();
+    if (loserProfile) {
+      await supabase.from('profiles').update({ points: (loserProfile.points || 0) + 200 }).eq('id', loserId);
+    }
+
+    await this.crownWinner(gameId, winnerId);
+    return winnerId;
+  },
+
+  // ── Advance to next round ──
+  async advanceRound(gameId: string) {
+    // Reset immunity for all
+    await supabase
+      .from('survival_participants')
+      .update({ is_immune: false })
+      .eq('game_id', gameId);
+
+    // Increment round
+    const { data: game } = await supabase
+      .from('survival_games')
+      .select('current_round')
+      .eq('id', gameId)
+      .single();
+
+    if (game) {
+      await supabase
+        .from('survival_games')
+        .update({ current_round: game.current_round + 1 })
+        .eq('id', gameId);
+    }
+  },
+
+  // ── Crown winner ──
+  async crownWinner(gameId: string, winnerId: string) {
+    // Update game
+    await supabase
+      .from('survival_games')
+      .update({ status: 'finished', phase: 'finished', winner_id: winnerId })
+      .eq('id', gameId);
+
+    // Update winner participant
+    await supabase
+      .from('survival_participants')
+      .update({ final_position: 1, points_earned: 500 })
+      .eq('game_id', gameId)
+      .eq('profile_id', winnerId);
+
+    // Add 500 global points to winner
+    const { data: profile } = await supabase.from('profiles').select('points').eq('id', winnerId).single();
+    if (profile) {
+      await supabase.from('profiles').update({ points: (profile.points || 0) + 500 }).eq('id', winnerId);
+    }
+  },
+
+  // ── Eliminate participant (legacy compat) ──
   async eliminateParticipant(gameId: string, profileId: string) {
     const { error } = await supabase
       .from('survival_participants')
@@ -876,11 +1182,25 @@ export const survivalService = {
     if (error) throw error;
   },
 
+  // ── Finish game (legacy compat) ──
   async finishGame(gameId: string) {
     const { error } = await supabase
       .from('survival_games')
-      .update({ status: 'finished' })
+      .update({ status: 'finished', phase: 'finished' })
       .eq('id', gameId);
     if (error) throw error;
-  }
+  },
+
+  // ── Game history for a group ──
+  async getGameHistory(groupId: string): Promise<SurvivalGame[]> {
+    const { data } = await supabase
+      .from('survival_games')
+      .select('*, survival_participants(*, profiles(id, username, avatar_url))')
+      .eq('group_id', groupId)
+      .eq('status', 'finished')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    return (data || []).map((g: any) => ({ ...g, participants: g.survival_participants || [] })) as SurvivalGame[];
+  },
 };
