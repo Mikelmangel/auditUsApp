@@ -49,6 +49,8 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [survivalVotes,    setSurvivalVotes]    = useState<Record<string, number>>({});
   const [survivalHistory,  setSurvivalHistory]  = useState<SurvivalGame[]>([]);
   const [survivalVoting,   setSurvivalVoting]   = useState(false);
+  const [processingRound,  setProcessingRound]  = useState(false);
+  const [now,              setNow]              = useState(() => new Date());
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
   const calendarStripRef = useCallback((node: HTMLDivElement | null) => {
@@ -97,6 +99,31 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     };
     load();
   }, [params, user]);
+
+  // Countdown clock — tick every second
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Auto-refresh survival game state every 30s when game is active
+  useEffect(() => {
+    if (!survivalGame || survivalGame.status === "finished" || !group) return;
+    const interval = setInterval(async () => {
+      const sg = await survivalService.getActiveGame(group.id).catch(() => null);
+      if (!sg) return;
+      setSurvivalGame(sg);
+      if (user) {
+        const [voted, votes] = await Promise.all([
+          survivalService.hasVotedThisRound(sg.id, sg.current_round, user.id),
+          survivalService.getRoundVotes(sg.id, sg.current_round),
+        ]);
+        setSurvivalVoted(voted);
+        setSurvivalVotes(votes);
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [survivalGame?.id, survivalGame?.status, group?.id, user]);
 
   /* ── Actions ── */
   const copyCode = async () => {
@@ -220,6 +247,27 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     }
   };
 
+  const processRound = async () => {
+    if (!group || !survivalGame || processingRound) return;
+    setProcessingRound(true);
+    try {
+      const res = await fetch(`/api/groups/${group.id}/survival/process-round`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Error"); return; }
+      toast.success(data.isFinished ? "¡Juego terminado! 🏆" : "Ronda procesada — nueva ronda iniciada");
+      const sg = await survivalService.getActiveGame(group.id).catch(() => null);
+      const history = await survivalService.getGameHistory(group.id).catch(() => []);
+      setSurvivalGame(sg);
+      setSurvivalHistory(history);
+      setSurvivalVoted(false);
+      setSurvivalVotes({});
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setProcessingRound(false);
+    }
+  };
+
   const leave = async () => {
     if (!group || !user || !confirm(t.group.leaveGroupConfirm)) return;
     await groupService.leaveGroup(group.id, user.id);
@@ -255,7 +303,16 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const currentUserRole = members.find(m => m.profile_id === user?.id)?.role;
   const isAdmin   = currentUserRole === "admin" || currentUserRole === "creator";
 
-  const isTodayDate   = (dateStr: string) => dateStr === new Date().toISOString().split("T")[0];
+  const isTodayDate = (dateStr: string) => dateStr === new Date().toISOString().split("T")[0];
+
+  // ── Battle Royale countdown helpers ──
+  const lastBattleWinnerId = survivalHistory[0]?.winner_id;
+  const roundDeadline = survivalGame?.round_deadline ? new Date(survivalGame.round_deadline) : null;
+  const msLeft = roundDeadline ? Math.max(0, roundDeadline.getTime() - now.getTime()) : null;
+  const roundExpired = msLeft === 0 && roundDeadline !== null;
+  const countdownLabel = msLeft === null ? null
+    : msLeft === 0 ? "Ronda cerrada"
+    : `${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m ${Math.floor((msLeft % 60_000) / 1_000)}s`;
 
   /* ── Unified Date Navigator Component ── */
   const HistoryNavigator = () => (
@@ -630,13 +687,26 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 className="flex flex-col gap-4"
               >
                 {members.map((m, i) => (
-                  <Card key={m.profile_id} className="p-4 flex items-center gap-4 border-slate-100/50">
-                    <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={50} className="shadow-md" />
+                  <Card key={m.profile_id} className={cn(
+                    "p-4 flex items-center gap-4 border-slate-100/50",
+                    m.profile_id === lastBattleWinnerId && "border-rose-100 bg-rose-50/30"
+                  )}>
+                    <div className="relative flex-shrink-0">
+                      <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={50} className="shadow-md" />
+                      {m.profile_id === lastBattleWinnerId && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/40 border-2 border-white">
+                          <Crown size={11} className="text-white fill-white" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-jakarta font-black text-slate-900 text-sm truncate">{m.profiles?.username}</span>
                         {m.role === "creator" && (
                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/50" />
+                        )}
+                        {m.profile_id === lastBattleWinnerId && (
+                          <span className="font-inter text-[8px] font-black text-rose-500 uppercase tracking-widest bg-rose-100 px-1.5 py-0.5 rounded-full">Campeón ⚔️</span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -814,7 +884,18 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                               const totalParticipants = game.participants.length;
                               return (
                                 <Card key={game.id} className="p-5 flex items-center gap-4 border-amber-100/50 bg-amber-50/30">
-                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-md shadow-amber-500/20">🏆</div>
+                                  {/* Winner avatar with red crown */}
+                                  <div className="relative flex-shrink-0">
+                                    <Avatar
+                                      src={winner?.profiles?.avatar_url}
+                                      name={winner?.profiles?.username}
+                                      size={48}
+                                      className="shadow-md shadow-amber-500/20"
+                                    />
+                                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/40 border-2 border-white">
+                                      <Crown size={11} className="text-white fill-white" />
+                                    </div>
+                                  </div>
                                   <div className="flex-1 min-w-0">
                                     <span className="font-jakarta font-black text-slate-900 text-sm block truncate">{winner?.profiles?.username || '—'}</span>
                                     <span className="font-inter text-[9px] font-black text-amber-600 uppercase tracking-widest">
@@ -912,6 +993,28 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                             <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.group.battleSpectator}</p>
                           </div>
                         )}
+
+                        {/* Countdown + admin button for final duel */}
+                        {countdownLabel && (
+                          <div className="flex items-center justify-center gap-2">
+                            <span className={cn(
+                              "font-inter text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full",
+                              roundExpired ? "bg-rose-100 text-rose-600 animate-pulse" : "bg-white/20 text-white"
+                            )}>
+                              {roundExpired ? "⏰ Duelo cerrado" : `⏱ ${countdownLabel}`}
+                            </span>
+                          </div>
+                        )}
+                        {isAdmin && roundExpired && (
+                          <Button
+                            onClick={processRound}
+                            loading={processingRound}
+                            className="w-full h-14 bg-gradient-to-r from-rose-600 to-orange-600 border-rose-500 shadow-xl shadow-rose-500/30"
+                          >
+                            <Crown size={16} className="fill-white" />
+                            Coronar Ganador
+                          </Button>
+                        )}
                       </div>
                     );
                   }
@@ -930,17 +1033,38 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                             {t.group.battleRound.replace("{current}", String(survivalGame.current_round)).replace("{total}", String(survivalGame.total_rounds))}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex -space-x-2">
-                            {alive.slice(0, 5).map((p: SurvivalParticipant) => {
-                              const memberData = members.find(m => m.profile_id === p.profile_id);
-                              return <Avatar key={p.profile_id} src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={28} />;
-                            })}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                              {alive.slice(0, 5).map((p: SurvivalParticipant) => {
+                                const memberData = members.find(m => m.profile_id === p.profile_id);
+                                return <Avatar key={p.profile_id} src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={28} />;
+                              })}
+                            </div>
+                            <span className="font-inter text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                              {t.group.battleAlive.replace("{count}", String(alive.length))}
+                            </span>
                           </div>
-                          <span className="font-inter text-[10px] font-black text-rose-500 uppercase tracking-widest">
-                            {t.group.battleAlive.replace("{count}", String(alive.length))}
-                          </span>
+                          {countdownLabel && (
+                            <span className={cn(
+                              "font-inter text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full",
+                              roundExpired ? "bg-rose-100 text-rose-600 animate-pulse" : "bg-white/70 text-slate-500"
+                            )}>
+                              {roundExpired ? "⏰ Cerrada" : `⏱ ${countdownLabel}`}
+                            </span>
+                          )}
                         </div>
+                        {/* Admin: process round when expired */}
+                        {isAdmin && roundExpired && (
+                          <Button
+                            onClick={processRound}
+                            loading={processingRound}
+                            className="mt-4 w-full h-12 bg-gradient-to-r from-rose-600 to-orange-600 border-rose-500 shadow-lg shadow-rose-500/20 text-xs"
+                          >
+                            <Skull size={14} />
+                            Cerrar Ronda y Eliminar
+                          </Button>
+                        )}
                       </Card>
 
                       {/* Spectator Banner */}

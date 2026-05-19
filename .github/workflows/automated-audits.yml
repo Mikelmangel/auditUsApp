@@ -6,6 +6,8 @@ on:
     - cron: '0 5,11,17,23 * * *'
     # Summary (closes polls): every 6h at 06,12,18,00 UTC
     - cron: '0 6,12,18,0 * * *'
+    # Battle Royale round resolution: every hour
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -17,6 +19,7 @@ on:
           - both
           - questions
           - summary
+          - survival
 
 jobs:
   automation:
@@ -37,3 +40,11 @@ jobs:
         run: |
           curl -f -X GET "https://www.auditus.fun/api/cron/summary" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+      - name: Process Battle Royale Rounds
+        if: >
+          github.event.schedule == '0 * * * *' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'survival' || github.event.inputs.job == 'both'))
+        run: |
+          curl -f -X GET "https://www.auditus.fun/api/cron/process-survival-rounds" \
+          -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

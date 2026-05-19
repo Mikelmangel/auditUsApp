@@ -827,6 +827,8 @@ export type SurvivalGame = {
   current_round: number;
   total_rounds: number;
   winner_id?: string;
+  round_deadline?: string;
+  round_processed?: boolean;
   created_at: string;
   participants: SurvivalParticipant[];
   survival_participants?: SurvivalParticipant[];
@@ -885,14 +887,13 @@ export const survivalService = {
 
   // ── Start a new Battle Royale ──
   async startSurvivalGame(groupId: string, memberIds: string[]): Promise<SurvivalGame> {
-    // Check no active game exists
     const existing = await this.getActiveGame(groupId);
     if (existing) throw new Error('Ya hay un Battle Royale activo en este grupo.');
     if (memberIds.length < 4) throw new Error('Se necesitan al menos 4 miembros para iniciar un Battle Royale.');
 
-    const totalRounds = memberIds.length - 1; // N-1 rounds until 1 remains
+    const totalRounds = memberIds.length - 1;
+    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h first round
 
-    // 1. Create Game
     const { data: game, error: gameErr } = await supabase
       .from('survival_games')
       .insert([{
@@ -901,6 +902,8 @@ export const survivalService = {
         phase: 'voting',
         current_round: 1,
         total_rounds: totalRounds,
+        round_deadline: deadline.toISOString(),
+        round_processed: false,
       }])
       .select()
       .single();
@@ -983,8 +986,39 @@ export const survivalService = {
     return (data || []) as SurvivalParticipant[];
   },
 
+  // ── Set deadline for current round ──
+  async startRound(gameId: string, deadlineHours = 24) {
+    const deadline = new Date(Date.now() + deadlineHours * 60 * 60 * 1000);
+    await supabase
+      .from('survival_games')
+      .update({ round_deadline: deadline.toISOString(), round_processed: false })
+      .eq('id', gameId);
+  },
+
+  // ── Check if current round deadline has passed ──
+  async hasRoundExpired(gameId: string): Promise<boolean> {
+    const { data } = await supabase
+      .from('survival_games')
+      .select('round_deadline, round_processed')
+      .eq('id', gameId)
+      .single();
+    if (!data?.round_deadline) return false;
+    if (data.round_processed) return false;
+    return new Date() > new Date(data.round_deadline);
+  },
+
   // ── Process round elimination (called by cron or manual trigger) ──
   async processRoundElimination(gameId: string): Promise<{ eliminatedId: string | null; isFinished: boolean }> {
+    // Idempotency guard — mark processed before doing anything
+    const { data: guard } = await supabase
+      .from('survival_games')
+      .update({ round_processed: true })
+      .eq('id', gameId)
+      .eq('round_processed', false)
+      .select('id')
+      .single();
+    if (!guard) return { eliminatedId: null, isFinished: false }; // already processed
+
     const game = await this.getGame(gameId);
     if (!game || game.status !== 'active') return { eliminatedId: null, isFinished: false };
 
@@ -1065,7 +1099,7 @@ export const survivalService = {
       return { eliminatedId, isFinished: true };
     }
 
-    // Advance to next round
+    // Advance to next round (sets new 24h deadline)
     await this.advanceRound(gameId);
     return { eliminatedId, isFinished: false };
   },
@@ -1129,13 +1163,11 @@ export const survivalService = {
 
   // ── Advance to next round ──
   async advanceRound(gameId: string) {
-    // Reset immunity for all
     await supabase
       .from('survival_participants')
       .update({ is_immune: false })
       .eq('game_id', gameId);
 
-    // Increment round
     const { data: game } = await supabase
       .from('survival_games')
       .select('current_round')
@@ -1143,9 +1175,14 @@ export const survivalService = {
       .single();
 
     if (game) {
+      const nextDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await supabase
         .from('survival_games')
-        .update({ current_round: game.current_round + 1 })
+        .update({
+          current_round: game.current_round + 1,
+          round_deadline: nextDeadline.toISOString(),
+          round_processed: false,
+        })
         .eq('id', gameId);
     }
   },
