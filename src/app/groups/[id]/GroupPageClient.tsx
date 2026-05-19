@@ -6,17 +6,17 @@ import { MobileLayout } from "@/components/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import {
   groupService, pollService, questionService, summaryService, survivalService,
-  type Group, type GroupMember, type Poll,
+  type Group, type GroupMember, type Poll, type SurvivalGame, type SurvivalParticipant,
 } from "@/lib/services";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ChevronLeft, ChevronRight, Copy, LogOut, Share2, Sparkles, UserMinus, Zap
+  ChevronLeft, ChevronRight, Copy, LogOut, Share2, Sparkles, UserMinus, Zap, Shield, Skull, Crown, Trophy, Swords
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -27,11 +27,9 @@ type TabKey = "polls" | "members" | "ranking" | "audit" | "survival";
 export default function GroupPage({ params }: { params: Promise<{ id: string }> }) {
   const { t, language } = useLanguage();
   const TABS: { key: TabKey; label: string }[] = [
-    { key: "polls",    label: t.group.polls },
-    { key: "members",  label: t.group.members },
-    { key: "ranking",  label: t.group.ranking },
-    { key: "audit",    label: t.group.audit },
-    { key: "survival", label: t.group.battle },
+    { key: "polls",   label: t.group.polls },
+    { key: "members", label: t.group.members },
+    { key: "ranking", label: t.group.ranking },
   ];
 
   const [group,            setGroup]            = useState<Group | null>(null);
@@ -46,9 +44,14 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [summaries,        setSummaries]        = useState<any[]>([]);
   const [pollCount,        setPollCount]        = useState(0);
   const [generating,       setGenerating]       = useState(false);
-  const [survivalGame,     setSurvivalGame]     = useState<any>(null);
+  const [survivalGame,     setSurvivalGame]     = useState<SurvivalGame | null>(null);
+  const [survivalVoted,    setSurvivalVoted]    = useState(false);
+  const [survivalVotes,    setSurvivalVotes]    = useState<Record<string, number>>({});
+  const [survivalHistory,  setSurvivalHistory]  = useState<SurvivalGame[]>([]);
+  const [survivalVoting,   setSurvivalVoting]   = useState(false);
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
+  const calendarStripRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -69,10 +72,35 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
       setPollCount(count);
       setSummaries(s);
       setSurvivalGame(sg);
+
+      // Load Battle Royale state
+      if (sg && user) {
+        const [voted, votes] = await Promise.all([
+          survivalService.hasVotedThisRound(sg.id, sg.current_round, user.id),
+          survivalService.getRoundVotes(sg.id, sg.current_round),
+        ]);
+        setSurvivalVoted(voted);
+        setSurvivalVotes(votes);
+      }
+
+      // Load game history
+      const history = await survivalService.getGameHistory(id).catch(() => []);
+      setSurvivalHistory(history);
+
       setLoading(false);
     };
     load();
-  }, [params]);
+  }, [params, user]);
+
+  useEffect(() => {
+    if (!isCalendarOpen && calendarStripRef.current) {
+      const container = calendarStripRef.current;
+      const today = container.children[13] as HTMLElement;
+      if (today) {
+        container.scrollLeft = today.offsetLeft - container.clientWidth / 2 + today.clientWidth / 2;
+      }
+    }
+  }, [isCalendarOpen, loading]);
 
   /* ── Actions ── */
   const copyCode = async () => {
@@ -160,14 +188,39 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
 
   const startSurvival = async () => {
     if (!group || !isAdmin) return;
-    // For simplicity keeping confirm in Spanish/English fallback or use t.group.confirmBattle
-    if (!confirm(t.group.battleRoyaleDesc)) return;
+    if (members.length < 4) {
+      toast.error(t.group.battleMinMembers);
+      return;
+    }
+    if (!confirm(t.group.battleRoyaleDesc + "\n\n" + t.group.battleRules)) return;
     try {
       const g = await survivalService.startSurvivalGame(group.id, members.map(m => m.profile_id));
-      setSurvivalGame({ ...g, participants: members.map(m => ({ profile_id: m.profile_id, is_eliminated: false })) });
+      setSurvivalGame(g);
+      setSurvivalVoted(false);
+      setSurvivalVotes({});
       toast.success(t.group.battleHungerGames);
     } catch (e: any) {
       toast.error(e.message);
+    }
+  };
+
+  const castSurvivalVote = async (targetId: string) => {
+    if (!survivalGame || !user || survivalVoted || survivalVoting) return;
+    if (targetId === user.id) {
+      toast.error(t.group.battleCantVoteSelf);
+      return;
+    }
+    setSurvivalVoting(true);
+    try {
+      await survivalService.castSurvivalVote(survivalGame.id, survivalGame.current_round, user.id, targetId);
+      setSurvivalVoted(true);
+      const votes = await survivalService.getRoundVotes(survivalGame.id, survivalGame.current_round);
+      setSurvivalVotes(votes);
+      toast.success(t.group.battleVoteRegistered);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSurvivalVoting(false);
     }
   };
 
@@ -202,7 +255,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   );
 
   const activePolls = polls.filter(p => p.is_active && (!p.expires_at || new Date(p.expires_at) > new Date()));
-  const ranking = [...members].sort((a, b) => (b.profiles?.points || 0) - (a.profiles?.points || 0));
+  const ranking = [...members].sort((a, b) => (b.group_points || 0) - (a.group_points || 0));
   const currentUserRole = members.find(m => m.profile_id === user?.id)?.role;
   const isAdmin   = currentUserRole === "admin" || currentUserRole === "creator";
 
@@ -287,7 +340,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
           >
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+            <div ref={calendarStripRef} className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
               {Array.from({ length: 14 }).map((_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() - 13 + i);
@@ -362,30 +415,129 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     >
       <div className="px-5 pb-6 flex flex-col gap-6 max-w-[430px] mx-auto pt-3">
 
-        {/* Action buttons */}
-        {pollCount < 3 && (
-          <div className="flex flex-col gap-3">
-            <Button
+        {/* Mode Cards Grid */}
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Encuesta aleatoria */}
+            <button
               onClick={createPoll}
-              loading={creating}
-              className="h-14 shadow-xl shadow-indigo-500/20"
+              disabled={creating || pollCount >= 3}
+              className={cn(
+                "flex flex-col items-start gap-3 p-4 rounded-[28px] border transition-all active:scale-[0.97] text-left",
+                pollCount >= 3
+                  ? "bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed"
+                  : "bg-white border-indigo-100 shadow-md shadow-indigo-500/10 hover:border-indigo-200"
+              )}
             >
-              {!creating && <Zap size={18} fill="currentColor" />}
-              {t.group.launchAudit} ({pollCount}/3)
-            </Button>
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/30">
+                <Zap size={18} className="text-white fill-white" />
+              </div>
+              <div>
+                <p className="font-jakarta font-black text-slate-900 text-sm leading-tight">{t.group.launchAudit}</p>
+                <span className={cn(
+                  "font-inter text-[9px] font-black uppercase tracking-widest mt-1 block",
+                  pollCount >= 3 ? "text-slate-400" : "text-indigo-500"
+                )}>
+                  {pollCount}/3 hoy
+                </span>
+              </div>
+            </button>
 
-            {!showPrediction ? (
-              <button
-                onClick={() => setShowPrediction(true)}
-                className="w-full flex items-center justify-center gap-3 py-3.5 border-2 border-dashed border-slate-200 rounded-[32px] font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:bg-slate-50 transition-all active:scale-[0.98]"
-              >
-                <Sparkles size={14} />
-                {t.group.manualPrediction}
-              </button>
-            ) : (
+            {/* Predicción */}
+            <button
+              onClick={() => setShowPrediction(v => !v)}
+              className={cn(
+                "flex flex-col items-start gap-3 p-4 rounded-[28px] border transition-all active:scale-[0.97] text-left",
+                showPrediction
+                  ? "bg-indigo-600 border-indigo-600 shadow-lg shadow-indigo-500/30"
+                  : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
+              )}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-2xl flex items-center justify-center",
+                showPrediction ? "bg-white/20" : "bg-slate-100"
+              )}>
+                <Sparkles size={18} className={showPrediction ? "text-white" : "text-slate-500"} />
+              </div>
+              <div>
+                <p className={cn("font-jakarta font-black text-sm leading-tight", showPrediction ? "text-white" : "text-slate-900")}>
+                  {t.group.manualPrediction}
+                </p>
+                <span className={cn("font-inter text-[9px] font-black uppercase tracking-widest mt-1 block", showPrediction ? "text-white/70" : "text-slate-400")}>
+                  personalizada
+                </span>
+              </div>
+            </button>
+
+            {/* Auditoría IA */}
+            <button
+              onClick={() => setTab("audit")}
+              className={cn(
+                "flex flex-col items-start gap-3 p-4 rounded-[28px] border transition-all active:scale-[0.97] text-left",
+                tab === "audit"
+                  ? "bg-violet-600 border-violet-600 shadow-lg shadow-violet-500/30"
+                  : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
+              )}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-2xl flex items-center justify-center",
+                tab === "audit" ? "bg-white/20" : "bg-violet-50"
+              )}>
+                <Crown size={18} className={tab === "audit" ? "text-white" : "text-violet-500"} />
+              </div>
+              <div>
+                <p className={cn("font-jakarta font-black text-sm leading-tight", tab === "audit" ? "text-white" : "text-slate-900")}>
+                  {t.group.audit}
+                </p>
+                <span className={cn("font-inter text-[9px] font-black uppercase tracking-widest mt-1 block", tab === "audit" ? "text-white/70" : "text-slate-400")}>
+                  {summaries.length > 0 ? `${summaries.length} reportes` : "ia · gemini"}
+                </span>
+              </div>
+            </button>
+
+            {/* Battle Royale */}
+            <button
+              onClick={() => setTab("survival")}
+              className={cn(
+                "flex flex-col items-start gap-3 p-4 rounded-[28px] border transition-all active:scale-[0.97] text-left",
+                tab === "survival"
+                  ? "bg-rose-600 border-rose-600 shadow-lg shadow-rose-500/30"
+                  : "bg-white border-slate-100 shadow-sm hover:border-slate-200"
+              )}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-2xl flex items-center justify-center",
+                tab === "survival" ? "bg-white/20" : "bg-rose-50"
+              )}>
+                <Swords size={18} className={tab === "survival" ? "text-white" : "text-rose-500"} />
+              </div>
+              <div>
+                <p className={cn("font-jakarta font-black text-sm leading-tight", tab === "survival" ? "text-white" : "text-slate-900")}>
+                  {t.group.battleRoyale}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  {survivalGame && survivalGame.status !== "finished" ? (
+                    <>
+                      <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", tab === "survival" ? "bg-white" : "bg-rose-500")} />
+                      <span className={cn("font-inter text-[9px] font-black uppercase tracking-widest", tab === "survival" ? "text-white/70" : "text-rose-500")}>activo</span>
+                    </>
+                  ) : (
+                    <span className={cn("font-inter text-[9px] font-black uppercase tracking-widest", tab === "survival" ? "text-white/70" : "text-slate-400")}>
+                      {members.length >= 4 ? "disponible" : "min. 4 jugadores"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Prediction form */}
+          <AnimatePresence>
+            {showPrediction && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
                 <Card className="p-5 flex flex-col gap-4">
@@ -403,8 +555,8 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 </Card>
               </motion.div>
             )}
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
 
         {/* Main Tab System */}
         <div className="flex flex-col gap-5">
@@ -532,7 +684,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Zap size={10} className={cn(i === 0 ? "text-indigo-600 fill-indigo-600" : "text-slate-300 fill-slate-300")} />
                         <span className={cn("font-inter text-[10px] font-black uppercase tracking-widest", i === 0 ? "text-indigo-600" : "text-slate-400")}>
-                          {m.profiles?.points || 0}
+                          {m.group_points || 0}
                         </span>
                       </div>
                     </div>
@@ -609,7 +761,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
               </motion.div>
             )}
 
-            {/* Survival Tab */}
+            {/* Survival Tab — Battle Royale v2 */}
             {tab === "survival" && (
               <motion.div 
                 key="survival" 
@@ -617,43 +769,302 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col gap-4"
+                className="flex flex-col gap-6"
               >
-                {!survivalGame ? (
-                  <div className="bg-white rounded-[40px] p-10 flex flex-col items-center text-center gap-8 shadow-sm border border-slate-100">
-                    <div className="w-24 h-24 rounded-[32px] bg-rose-50 border border-rose-100 flex items-center justify-center text-5xl shadow-inner animate-pulse">⚔️</div>
-                    <div>
-                      <h3 className="font-jakarta text-2xl font-black text-slate-900 mb-3 tracking-tight">{t.group.battleRoyale}</h3>
-                      <p className="font-inter text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-loose max-w-[260px]">{t.group.battleRoyaleDesc}</p>
-                    </div>
-                    {isAdmin && (
-                      <Button onClick={startSurvival} className="h-16 bg-rose-600 border-rose-500 shadow-xl shadow-rose-500/30">{t.group.launchBattle}</Button>
-                    )}
-                  </div>
-                ) : (
-                  <Card className="p-8 shadow-2xl shadow-rose-500/5 border-rose-100 ring-4 ring-rose-50/50">
-                    <div className="flex items-center justify-between mb-8 border-b border-rose-50 pb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                        <h3 className="font-jakarta text-lg font-black text-rose-600 tracking-tight">{t.group.battleStatus}</h3>
-                      </div>
-                      <span className="font-inter text-[10px] font-black text-rose-400 uppercase tracking-widest">{t.group.battleInProgress}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-5">
-                      {members.map(m => {
-                        const participant = survivalGame.participants?.find((p: any) => p.profile_id === m.profile_id);
-                        const isEliminated = participant?.is_eliminated;
-                        return (
-                          <div key={m.profile_id} className={cn("rounded-[32px] p-5 flex flex-col items-center gap-3 relative overflow-hidden transition-all", isEliminated ? "bg-slate-50 border-slate-100 opacity-30 grayscale saturate-0" : "bg-white border-slate-100 shadow-sm")}>
-                            {isEliminated && <div className="absolute inset-0 flex items-center justify-center"><div className="w-full h-1 bg-rose-600/40 rotate-[15deg] blur-[1px]" /></div>}
-                            <Avatar src={m.profiles?.avatar_url} name={m.profiles?.username} size={60} />
-                            <span className="font-jakarta text-[11px] font-black text-slate-900 text-center truncate w-full">{m.profiles?.username}</span>
+                {(() => {
+                  // ── STATE 1: No active game ──
+                  if (!survivalGame || survivalGame.status === 'finished') {
+                    return (
+                      <div className="flex flex-col gap-6">
+                        {/* Start Card */}
+                        <div className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-[40px] p-10 flex flex-col items-center text-center gap-6 shadow-sm border border-rose-100/50">
+                          <motion.div 
+                            className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center text-5xl shadow-xl shadow-rose-500/30"
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                          >
+                            ⚔️
+                          </motion.div>
+                          <div>
+                            <h3 className="font-jakarta text-2xl font-black text-slate-900 mb-3 tracking-tight">{t.group.battleRoyale}</h3>
+                            <p className="font-inter text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-loose max-w-[280px]">
+                              {t.group.battleRules}
+                            </p>
                           </div>
-                        );
-                      })}
+                          {isAdmin && (
+                            <Button 
+                              onClick={startSurvival} 
+                              disabled={members.length < 4}
+                              className="h-16 bg-gradient-to-r from-rose-600 to-orange-600 border-rose-500 shadow-xl shadow-rose-500/30 w-full"
+                            >
+                              <Swords size={18} />
+                              {t.group.launchBattle}
+                            </Button>
+                          )}
+                          {members.length < 4 && (
+                            <p className="font-inter text-[9px] font-black text-rose-400 uppercase tracking-widest">{t.group.battleMinMembers}</p>
+                          )}
+                        </div>
+
+                        {/* Hall of Fame */}
+                        {survivalHistory.length > 0 && (
+                          <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-3 px-1">
+                              <Trophy size={14} className="text-amber-500" />
+                              <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.group.battleHallOfFame}</h4>
+                            </div>
+                            {survivalHistory.map(game => {
+                              const winner = game.participants.find(p => p.final_position === 1);
+                              const totalParticipants = game.participants.length;
+                              return (
+                                <Card key={game.id} className="p-5 flex items-center gap-4 border-amber-100/50 bg-amber-50/30">
+                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-md shadow-amber-500/20">🏆</div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-jakarta font-black text-slate-900 text-sm block truncate">{winner?.profiles?.username || '—'}</span>
+                                    <span className="font-inter text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                                      {t.group.battleSurvived.replace("{rounds}", String(totalParticipants - 1))}
+                                    </span>
+                                  </div>
+                                  <span className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                    {new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { day: 'numeric', month: 'short' }).format(new Date(game.created_at))}
+                                  </span>
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const alive = survivalGame.participants?.filter((p: SurvivalParticipant) => !p.is_eliminated) || [];
+                  const eliminated = survivalGame.participants?.filter((p: SurvivalParticipant) => p.is_eliminated)
+                    .sort((a: SurvivalParticipant, b: SurvivalParticipant) => (b.eliminated_round || 0) - (a.eliminated_round || 0)) || [];
+                  const isUserAlive = alive.some((p: SurvivalParticipant) => p.profile_id === user?.id);
+                  const isUserParticipant = survivalGame.participants?.some((p: SurvivalParticipant) => p.profile_id === user?.id);
+                  const totalSurvivalVotes = Object.values(survivalVotes).reduce((a, b) => a + b, 0);
+                  const canVote = survivalGame.phase === 'final_duel' 
+                    ? (isUserParticipant && !survivalVoted) // In final duel, all participants can vote
+                    : (isUserAlive && !survivalVoted); // In normal rounds, only alive can vote
+
+                  // ── STATE 3: Final Duel ──
+                  if (survivalGame.phase === 'final_duel' && alive.length === 2) {
+                    return (
+                      <div className="flex flex-col gap-6">
+                        {/* Final Duel Header */}
+                        <motion.div 
+                          className="bg-gradient-to-br from-rose-600 to-orange-700 rounded-[32px] p-8 text-center shadow-2xl shadow-rose-500/30"
+                          animate={{ boxShadow: ["0 25px 50px -12px rgba(225,29,72,0.3)", "0 25px 50px -12px rgba(225,29,72,0.5)", "0 25px 50px -12px rgba(225,29,72,0.3)"] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        >
+                          <p className="font-inter text-[10px] font-black text-white/60 uppercase tracking-[0.4em] mb-2">{t.group.battleFinalDuel}</p>
+                          <h3 className="font-jakarta text-xl font-black text-white tracking-tight">
+                            {t.group.battleFinalScenarios ? t.group.battleFinalScenarios[(survivalGame.current_round || 0) % t.group.battleFinalScenarios.length] : t.group.battleFinalDuelDesc}
+                          </h3>
+                        </motion.div>
+
+                        {/* Two Finalists */}
+                        <div className="grid grid-cols-2 gap-4">
+                          {alive.map((p: SurvivalParticipant) => {
+                            const memberData = members.find(m => m.profile_id === p.profile_id);
+                            const voteCount = survivalVotes[p.profile_id] || 0;
+                            return (
+                              <motion.button
+                                key={p.profile_id}
+                                whileTap={canVote ? { scale: 0.95 } : {}}
+                                onClick={() => canVote && castSurvivalVote(p.profile_id)}
+                                disabled={!canVote || p.profile_id === user?.id}
+                                className={cn(
+                                  "rounded-[32px] p-6 flex flex-col items-center gap-4 relative overflow-hidden transition-all border-2",
+                                  survivalVoted
+                                    ? "bg-white border-slate-100"
+                                    : "bg-gradient-to-b from-rose-50 to-white border-rose-200 shadow-lg shadow-rose-500/10 active:scale-95"
+                                )}
+                              >
+                                <div className="relative">
+                                  <Avatar src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={72} className="shadow-lg" />
+                                  {p.profile_id === user?.id && (
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shadow-md">tú</div>
+                                  )}
+                                </div>
+                                <span className="font-jakarta text-sm font-black text-slate-900 text-center truncate w-full">{memberData?.profiles?.username}</span>
+                                {survivalVoted && totalSurvivalVotes > 0 && (
+                                  <div className="w-full">
+                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${(voteCount / totalSurvivalVotes) * 100}%` }}
+                                        className="h-full bg-gradient-to-r from-rose-500 to-orange-500 rounded-full"
+                                      />
+                                    </div>
+                                    <span className="font-inter text-[10px] font-black text-rose-500 mt-1">{voteCount} votos</span>
+                                  </div>
+                                )}
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+
+                        {survivalVoted && (
+                          <div className="text-center py-4">
+                            <p className="font-inter text-[10px] font-black text-indigo-600 uppercase tracking-widest">{t.group.battleYouVoted}</p>
+                          </div>
+                        )}
+
+                        {!isUserParticipant && (
+                          <div className="bg-slate-50 rounded-2xl p-4 text-center">
+                            <p className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.group.battleSpectator}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // ── STATE 2: Active game — Voting phase ──
+                  return (
+                    <div className="flex flex-col gap-6">
+                      {/* Round Header */}
+                      <Card className="p-6 border-rose-100 bg-gradient-to-r from-rose-50/50 to-orange-50/50">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                            <h3 className="font-jakarta text-lg font-black text-rose-600 tracking-tight">{t.group.battleRoyale}</h3>
+                          </div>
+                          <span className="font-inter text-[10px] font-black text-rose-400 uppercase tracking-widest">
+                            {t.group.battleRound.replace("{current}", String(survivalGame.current_round)).replace("{total}", String(survivalGame.total_rounds))}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex -space-x-2">
+                            {alive.slice(0, 5).map((p: SurvivalParticipant) => {
+                              const memberData = members.find(m => m.profile_id === p.profile_id);
+                              return <Avatar key={p.profile_id} src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={28} />;
+                            })}
+                          </div>
+                          <span className="font-inter text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                            {t.group.battleAlive.replace("{count}", String(alive.length))}
+                          </span>
+                        </div>
+                      </Card>
+
+                      {/* Spectator Banner */}
+                      {isUserParticipant && !isUserAlive && (
+                        <div className="bg-slate-100 rounded-2xl p-4 flex items-center gap-3 border border-slate-200">
+                          <Skull size={18} className="text-slate-400" />
+                          <p className="font-inter text-[10px] font-black text-slate-500 uppercase tracking-widest">{t.group.battleSpectator}</p>
+                        </div>
+                      )}
+
+                      {/* Voting Section */}
+                      <div className="flex flex-col gap-3">
+                        <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100 mb-2">
+                          <p className="font-jakarta text-sm font-bold text-rose-900 leading-snug">
+                            {t.group.battleScenarios ? t.group.battleScenarios[(survivalGame.current_round || 0) % t.group.battleScenarios.length] : t.group.battleVoteEliminate}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 px-1">
+                          <Skull size={12} className="text-rose-400" />
+                          <h4 className="font-inter text-[10px] font-black text-rose-500 uppercase tracking-widest">{t.group.battleVoteEliminate}</h4>
+                        </div>
+                        {alive.map((p: SurvivalParticipant) => {
+                          const memberData = members.find(m => m.profile_id === p.profile_id);
+                          const voteCount = survivalVotes[p.profile_id] || 0;
+                          const isMe = p.profile_id === user?.id;
+                          return (
+                            <motion.button
+                              key={p.profile_id}
+                              whileTap={canVote && !isMe ? { scale: 0.98 } : {}}
+                              onClick={() => canVote && !isMe && castSurvivalVote(p.profile_id)}
+                              disabled={!canVote || isMe}
+                              className={cn(
+                                "relative h-16 rounded-[24px] flex items-center border overflow-hidden transition-all",
+                                isMe
+                                  ? "bg-indigo-50 border-indigo-100 opacity-60 cursor-default"
+                                  : survivalVoted
+                                    ? "bg-white border-slate-100"
+                                    : "bg-gradient-to-r from-rose-600 to-orange-600 border-rose-500 shadow-lg shadow-rose-500/20"
+                              )}
+                            >
+                              <div className="flex items-center gap-3 px-3 pointer-events-none relative z-10">
+                                <Avatar src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={44} className="shadow-sm" />
+                                <div className="flex flex-col items-start">
+                                  <span className={cn("font-black text-sm", isMe ? "text-indigo-600" : survivalVoted ? "text-slate-700" : "text-white")}>
+                                    {memberData?.profiles?.username}
+                                  </span>
+                                  {p.is_immune && (
+                                    <span className="flex items-center gap-1 text-[9px] font-black text-amber-500 uppercase tracking-widest">
+                                      <Shield size={9} /> {t.group.battleImmune}
+                                    </span>
+                                  )}
+                                  {isMe && (
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                                      (tú)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {survivalVoted && totalSurvivalVotes > 0 && (
+                                <motion.div 
+                                  initial={{ width: 0 }} 
+                                  animate={{ width: `${(voteCount / totalSurvivalVotes) * 100}%` }}
+                                  className="absolute inset-0 bg-gradient-to-r from-rose-500 to-rose-400 z-[1] flex items-center justify-end pr-5"
+                                >
+                                  <span className="font-black text-white text-sm">{Math.round((voteCount / totalSurvivalVotes) * 100)}%</span>
+                                </motion.div>
+                              )}
+                            </motion.button>
+                          );
+                        })}
+
+                        {survivalVoted && (
+                          <div className="text-center py-2">
+                            <p className="font-inter text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center justify-center gap-2">
+                              ✓ {t.group.battleYouVoted}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Elimination Timeline */}
+                      {eliminated.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2 px-1">
+                            <Skull size={12} className="text-slate-300" />
+                            <h4 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.group.battleTimeline}</h4>
+                          </div>
+                          {eliminated.map((p: SurvivalParticipant, idx: number) => {
+                            const memberData = members.find(m => m.profile_id === p.profile_id);
+                            return (
+                              <motion.div
+                                key={p.profile_id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.08 }}
+                                className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-2xl border border-slate-100 opacity-60"
+                              >
+                                <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
+                                  <Skull size={14} className="text-rose-400" />
+                                </div>
+                                <div className="relative flex-shrink-0">
+                                  <Avatar src={memberData?.profiles?.avatar_url} name={memberData?.profiles?.username} size={36} className="grayscale" />
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-full h-0.5 bg-rose-500/60 rotate-[15deg]" />
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-jakarta font-black text-slate-500 text-xs block truncate">{memberData?.profiles?.username}</span>
+                                  <span className="font-inter text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                    {t.group.battleEliminated.replace("{round}", String(p.eliminated_round || '?'))}
+                                  </span>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </Card>
-                )}
+                  );
+                })()}
               </motion.div>
             )}
           </AnimatePresence>
