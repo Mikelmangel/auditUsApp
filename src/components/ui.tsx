@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/useLanguage";
 import { motion } from "framer-motion";
 import { ChevronLeft, Home, Loader2, Search, Trophy, User, Users } from "lucide-react";
 import Link from "next/link";
@@ -30,8 +31,6 @@ export function Avatar({
     </div>
   );
 }
-
-import { useLanguage } from "@/hooks/useLanguage";
 
 /* ── BottomNav ── */
 export function BottomNav({ className }: { className?: string }) {
@@ -253,10 +252,11 @@ export function EmptyState({
 
 /* ── LoadingScreen ── */
 export function LoadingScreen() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-svh flex flex-col items-center justify-center bg-[var(--stitch-canvas)] dot-grid">
       <motion.div
-        animate={{ 
+        animate={{
           scale: [0.95, 1.05, 0.95],
           rotate: [0, 180, 360]
         }}
@@ -266,7 +266,7 @@ export function LoadingScreen() {
         <div className="w-4 h-4 rounded-full bg-[var(--stitch-primary)] animate-pulse" />
       </motion.div>
       <p className="mt-8 font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">
-        Auditando Sistema...
+        {t.common.loading}
       </p>
     </div>
   );

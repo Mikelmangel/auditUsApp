@@ -208,7 +208,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
     try {
       await nudgeService.createNudge(poll.id, user.id, receiverId);
       const sender = members.find(m => m.profile_id === user.id);
-      const senderName = (sender as any)?.profiles?.username ?? 'alguien';
+      const senderName = (sender as any)?.profiles?.username ?? t.poll.unknownSender;
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -233,7 +233,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
 
   const resolvePrediction = async (targetId: string) => {
     if (!poll || !user || !isAdmin) return;
-    if (!confirm("¿Seguro? Esto dará 50 puntos a los acertantes.")) return;
+    if (!confirm(t.common.confirmPrediction)) return;
     setSubmitting(true);
     try {
       await pollService.resolvePrediction(poll.id, targetId, user.id);
@@ -246,7 +246,7 @@ export default function PollPage({ params }: { params: Promise<{ id: string }> }
 
   const closePollManually = async () => {
     if (!poll || !isAdmin) return;
-    if (!confirm("¿Cerrar la encuesta? Nadie más podrá votar.")) return;
+    if (!confirm(t.poll.closePollConfirm)) return;
     try {
       await pollService.closePoll(poll.id);
       setPoll({ ...poll, is_active: false });

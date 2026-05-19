@@ -209,6 +209,8 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
   align-items: center;
   justify-content: center;
   gap: 10px;
+  width: 100%;
+  min-height: 52px;
 }
 
 .btn-ghost {
@@ -259,6 +261,7 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 .arc-header {
   background: var(--primary);
   color: var(--text-inverse);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
   padding-bottom: 60px;
   border-bottom-left-radius: 40px;
   border-bottom-right-radius: 40px;
@@ -313,12 +316,6 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
   box-shadow: 0 4px 12px rgba(20, 114, 110, 0.2);
 }
 
-/* Buttons — secondary needs full-width + min-height like primary */
-.btn-secondary {
-  width: 100%;
-  min-height: 52px;
-}
-
 /* Danger Button */
 .btn-danger {
   background: #ef4444;
@@ -341,11 +338,6 @@ h3 { font-size: 1.25rem; line-height: 1.2; }
 .btn-danger:active {
   transform: scale(0.96);
   filter: brightness(0.9);
-}
-
-/* Arc Header — includes safe area inset */
-.arc-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
 }
 
 /* Background Mesh — decorative radial gradient for dark pages */

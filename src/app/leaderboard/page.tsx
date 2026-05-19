@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
                 <Trophy size={16} className="text-indigo-500" />
               </div>
               <h1 className="font-jakarta text-xl font-black text-slate-900 leading-none tracking-tight">
-                Ranking
+                {t.nav.ranking}
               </h1>
             </div>
 
