@@ -24,6 +24,137 @@ import { useLanguage } from "@/hooks/useLanguage";
 
 type TabKey = "polls" | "members" | "ranking" | "audit" | "survival";
 
+function HistoryNavigator({
+  tab, isCalendarOpen, setIsCalendarOpen, selectedDate, setSelectedDate, polls, summaries,
+}: {
+  tab: TabKey;
+  isCalendarOpen: boolean;
+  setIsCalendarOpen: (v: boolean) => void;
+  selectedDate: string;
+  setSelectedDate: (v: string) => void;
+  polls: Poll[];
+  summaries: any[];
+}) {
+  const { t, language } = useLanguage();
+  const calendarStripRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    requestAnimationFrame(() => { node.scrollLeft = node.scrollWidth; });
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          {tab === "audit" ? t.group.audit : t.group.activityLog}
+        </h3>
+        <button
+          onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+          className="font-inter text-[9px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm active:scale-95 transition-transform"
+        >
+          {isCalendarOpen ? t.group.minimize : t.group.viewCalendar}
+          <ChevronRight size={10} className={cn("transition-transform", isCalendarOpen && "rotate-90")} />
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {isCalendarOpen ? (
+          <motion.div
+            key="full-calendar"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <Card className="p-6 mb-2 bg-white">
+              {(() => {
+                const now = new Date();
+                const calYear = now.getFullYear();
+                const calMonth = now.getMonth();
+                const calYearStr = calYear.toString();
+                const calMonthStr = (calMonth + 1).toString().padStart(2, '0');
+                const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+                let startOffset = new Date(calYear, calMonth, 1).getDay();
+                startOffset = startOffset === 0 ? 6 : startOffset - 1;
+                const todayStr = now.toISOString().split('T')[0];
+                return (
+                  <div className="grid grid-cols-7 gap-y-3 text-center">
+                    {t.group.weekdays.map((d, i) => (
+                      <span key={i} className="font-jakarta text-[10px] font-black text-slate-300 uppercase">{d}</span>
+                    ))}
+                    {Array.from({ length: startOffset }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${calYearStr}-${calMonthStr}-${day.toString().padStart(2, '0')}`;
+                      const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
+                      const isSelected = selectedDate === dateStr;
+                      const isToday = dateStr === todayStr;
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => setSelectedDate(dateStr)}
+                          className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center font-jakarta text-sm font-black transition-all mx-auto",
+                            isSelected ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" :
+                            hasPolls   ? "bg-indigo-50 text-indigo-500" :
+                            isToday    ? "border-2 border-indigo-600 text-indigo-600" :
+                                         "text-slate-300 hover:bg-slate-50"
+                          )}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="collapsed-strip"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+          >
+            <div ref={calendarStripRef} className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
+              {Array.from({ length: 14 }).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 13 + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const isSelected = selectedDate === dateStr;
+                const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
+                const hasSummary = summaries.some(s => new Date(s.created_at).toISOString().split("T")[0] === dateStr);
+                const dayName = new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).format(d);
+                const dayNum = d.getDate();
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={cn(
+                      "flex flex-col items-center justify-center min-w-[60px] h-[76px] rounded-[24px] transition-all border relative",
+                      isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-50" :
+                      hasPolls    ? "bg-white border-indigo-100 text-indigo-500" :
+                                    "bg-white border-slate-100 text-slate-300 hover:border-slate-200"
+                    )}
+                  >
+                    <span className="font-inter text-[9px] font-black uppercase mb-1 opacity-70 tracking-widest">{dayName}</span>
+                    <span className="font-jakarta text-lg font-black">{dayNum}</span>
+                    {tab === "audit" && hasSummary && !isSelected && (
+                      <div className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function GroupPage({ params }: { params: Promise<{ id: string }> }) {
   const { t, language } = useLanguage();
   const TABS: { key: TabKey; label: string }[] = [
@@ -53,13 +184,6 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [now,              setNow]              = useState(() => new Date());
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
-  const calendarStripRef = useCallback((node: HTMLDivElement | null) => {
-    if (!node) return;
-    requestAnimationFrame(() => {
-      // today is always the last item (index 13) — scroll to end
-      node.scrollLeft = node.scrollWidth;
-    });
-  }, []);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -319,122 +443,6 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     : msLeft === 0 ? "Ronda cerrada"
     : `${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m ${Math.floor((msLeft % 60_000) / 1_000)}s`;
 
-  /* ── Unified Date Navigator Component ── */
-  const HistoryNavigator = () => (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="font-inter text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {tab === "audit" ? t.group.audit : t.group.activityLog}
-        </h3>
-        <button 
-          onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-          className="font-inter text-[9px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm active:scale-95 transition-transform"
-        >
-          {isCalendarOpen ? t.group.minimize : t.group.viewCalendar}
-          <ChevronRight size={10} className={cn("transition-transform", isCalendarOpen && "rotate-90")} />
-        </button>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {isCalendarOpen ? (
-          <motion.div 
-            key="full-calendar"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <Card className="p-6 mb-2 bg-white">
-              {(() => {
-                const now = new Date();
-                const calYear = now.getFullYear();
-                const calMonth = now.getMonth();
-                const calYearStr = calYear.toString();
-                const calMonthStr = (calMonth + 1).toString().padStart(2, '0');
-                const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-                let startOffset = new Date(calYear, calMonth, 1).getDay();
-                startOffset = startOffset === 0 ? 6 : startOffset - 1;
-                const todayStr = now.toISOString().split('T')[0];
-
-                return (
-                  <div className="grid grid-cols-7 gap-y-3 text-center">
-                    {t.group.weekdays.map((d, i) => (
-                      <span key={i} className="font-jakarta text-[10px] font-black text-slate-300 uppercase">{d}</span>
-                    ))}
-                    {Array.from({ length: startOffset }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const day = i + 1;
-                      const dateStr = `${calYearStr}-${calMonthStr}-${day.toString().padStart(2, '0')}`;
-                      const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
-                      const isSelected = selectedDate === dateStr;
-                      const isToday = dateStr === todayStr;
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => setSelectedDate(dateStr)}
-                          className={cn(
-                            "w-9 h-9 rounded-xl flex items-center justify-center font-jakarta text-sm font-black transition-all mx-auto",
-                            isSelected ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" :
-                            hasPolls  ? "bg-indigo-50 text-indigo-500" :
-                            isToday   ? "border-2 border-indigo-600 text-indigo-600" :
-                                        "text-slate-300 hover:bg-slate-50"
-                          )}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </Card>
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="collapsed-strip"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-          >
-            <div ref={calendarStripRef} className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 no-scrollbar">
-              {Array.from({ length: 14 }).map((_, i) => {
-                const d = new Date();
-                d.setDate(d.getDate() - 13 + i);
-                const dateStr = d.toISOString().split('T')[0];
-                const isSelected = selectedDate === dateStr;
-                const hasPolls = polls.some(p => new Date(p.created_at).toISOString().split('T')[0] === dateStr);
-                const hasSummary = summaries.some(s => new Date(s.created_at).toISOString().split("T")[0] === dateStr);
-                const dayName = new Intl.DateTimeFormat(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short' }).format(d);
-                const dayNum = d.getDate();
-
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => setSelectedDate(dateStr)}
-                    className={cn(
-                      "flex flex-col items-center justify-center min-w-[60px] h-[76px] rounded-[24px] transition-all border relative",
-                      isSelected ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-50" :
-                      hasPolls ? "bg-white border-indigo-100 text-indigo-500" :
-                      "bg-white border-slate-100 text-slate-300 hover:border-slate-200"
-                    )}
-                  >
-                    <span className="font-inter text-[9px] font-black uppercase mb-1 opacity-70 tracking-widest">{dayName}</span>
-                    <span className="font-jakarta text-lg font-black">{dayNum}</span>
-                    {tab === "audit" && hasSummary && !isSelected && (
-                      <div className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-
   /* ── Main Render ── */
   return (
     <MobileLayout
@@ -635,7 +643,15 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col gap-8"
               >
-                <HistoryNavigator />
+                <HistoryNavigator
+                  tab={tab}
+                  isCalendarOpen={isCalendarOpen}
+                  setIsCalendarOpen={setIsCalendarOpen}
+                  selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
+                  polls={polls}
+                  summaries={summaries}
+                />
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3 px-1 mb-2">
                     <div className="w-1 h-4 bg-indigo-500 rounded-full" />
@@ -775,7 +791,15 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-col gap-6"
               >
-                <HistoryNavigator />
+                <HistoryNavigator
+                  tab={tab}
+                  isCalendarOpen={isCalendarOpen}
+                  setIsCalendarOpen={setIsCalendarOpen}
+                  selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
+                  polls={polls}
+                  summaries={summaries}
+                />
                 {isAdmin && isTodayDate(selectedDate) && (() => {
                   const todayHasSummary = summaries.some(
                     s => new Date(s.created_at).toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
