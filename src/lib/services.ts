@@ -528,6 +528,18 @@ export const pollService = {
       .eq('is_active', true);
     if (error) throw error;
   },
+
+  async closeExpiredPolls(): Promise<number> {
+    const { data, error } = await supabase
+      .from('polls')
+      .update({ is_active: false })
+      .eq('is_active', true)
+      .not('expires_at', 'is', null)
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+    if (error) throw error;
+    return data?.length ?? 0;
+  },
 };
 
 // ─────────────────────────────────────────────

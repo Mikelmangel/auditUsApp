@@ -6,6 +6,8 @@ on:
     - cron: '0 5,11,17,23 * * *'
     # Summary (closes polls): every 6h at 06,12,18,00 UTC
     - cron: '0 6,12,18,0 * * *'
+    # Close expired polls: every 2h
+    - cron: '0 */2 * * *'
     # Battle Royale round resolution: every hour
     - cron: '0 * * * *'
   workflow_dispatch:
@@ -19,6 +21,7 @@ on:
           - both
           - questions
           - summary
+          - close-expired
           - survival
 
 jobs:
@@ -39,6 +42,14 @@ jobs:
           (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'summary' || github.event.inputs.job == 'both'))
         run: |
           curl -f -X GET "https://www.auditus.fun/api/cron/summary" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+      - name: Close Expired Polls
+        if: >
+          github.event.schedule == '0 */2 * * *' ||
+          (github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'close-expired' || github.event.inputs.job == 'both'))
+        run: |
+          curl -f -X GET "https://www.auditus.fun/api/cron/close-expired-polls" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
       - name: Process Battle Royale Rounds
