@@ -24,6 +24,42 @@ import { useLanguage } from "@/hooks/useLanguage";
 
 type TabKey = "polls" | "members" | "ranking" | "audit" | "survival";
 
+/* Isolated countdown — owns its own 1s ticker so GroupPage never re-renders from it */
+function CountdownDisplay({
+  deadline,
+  expiredLabel,
+  variant = "light",
+}: {
+  deadline: Date | null;
+  expiredLabel: string;
+  variant?: "light" | "dark";
+}) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!deadline) return null;
+  const msLeft = Math.max(0, deadline.getTime() - now.getTime());
+  if (msLeft === 0) {
+    return (
+      <span className="font-inter text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-rose-100 text-rose-600 animate-pulse">
+        ⏰ {expiredLabel}
+      </span>
+    );
+  }
+  const label = `${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m ${Math.floor((msLeft % 60_000) / 1_000)}s`;
+  return (
+    <span className={cn(
+      "font-inter text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full",
+      variant === "dark" ? "bg-white/20 text-white" : "bg-white/70 text-slate-500"
+    )}>
+      ⏱ {label}
+    </span>
+  );
+}
+
 function HistoryNavigator({
   tab, isCalendarOpen, setIsCalendarOpen, selectedDate, setSelectedDate, polls, summaries,
 }: {
@@ -181,7 +217,7 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
   const [survivalHistory,  setSurvivalHistory]  = useState<SurvivalGame[]>([]);
   const [survivalVoting,   setSurvivalVoting]   = useState(false);
   const [processingRound,  setProcessingRound]  = useState(false);
-  const [now,              setNow]              = useState(() => new Date());
+  const [roundExpired,     setRoundExpired]     = useState(false);
   const [selectedDate,     setSelectedDate]     = useState<string>(new Date().toISOString().split("T")[0]);
   const [isCalendarOpen,   setIsCalendarOpen]   = useState(false);
   const { user } = useAuth();
@@ -224,11 +260,16 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
     load();
   }, [params, user]);
 
-  // Countdown clock — tick every second
+  // Fire once when the round deadline passes — no 1s re-render flood
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+    const deadline = survivalGame?.round_deadline ? new Date(survivalGame.round_deadline) : null;
+    if (!deadline) { setRoundExpired(false); return; }
+    const msLeft = deadline.getTime() - Date.now();
+    if (msLeft <= 0) { setRoundExpired(true); return; }
+    setRoundExpired(false);
+    const t = setTimeout(() => setRoundExpired(true), msLeft);
+    return () => clearTimeout(t);
+  }, [survivalGame?.round_deadline]);
 
   // Auto-refresh survival game state every 30s when game is active
   useEffect(() => {
@@ -434,14 +475,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
 
   const isTodayDate = (dateStr: string) => dateStr === new Date().toISOString().split("T")[0];
 
-  // ── Battle Royale countdown helpers ──
+  // ── Battle Royale helpers ──
   const lastBattleWinnerId = survivalHistory[0]?.winner_id;
   const roundDeadline = survivalGame?.round_deadline ? new Date(survivalGame.round_deadline) : null;
-  const msLeft = roundDeadline ? Math.max(0, roundDeadline.getTime() - now.getTime()) : null;
-  const roundExpired = msLeft === 0 && roundDeadline !== null;
-  const countdownLabel = msLeft === null ? null
-    : msLeft === 0 ? "Ronda cerrada"
-    : `${Math.floor(msLeft / 3_600_000)}h ${Math.floor((msLeft % 3_600_000) / 60_000)}m ${Math.floor((msLeft % 60_000) / 1_000)}s`;
 
   /* ── Main Render ── */
   return (
@@ -1035,14 +1071,9 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                         )}
 
                         {/* Countdown + admin button for final duel */}
-                        {countdownLabel && (
+                        {roundDeadline && (
                           <div className="flex items-center justify-center gap-2">
-                            <span className={cn(
-                              "font-inter text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full",
-                              roundExpired ? "bg-rose-100 text-rose-600 animate-pulse" : "bg-white/20 text-white"
-                            )}>
-                              {roundExpired ? "⏰ Duelo cerrado" : `⏱ ${countdownLabel}`}
-                            </span>
+                            <CountdownDisplay deadline={roundDeadline} expiredLabel="Duelo cerrado" variant="dark" />
                           </div>
                         )}
                         {isAdmin && roundExpired && (
@@ -1085,13 +1116,8 @@ export default function GroupPage({ params }: { params: Promise<{ id: string }> 
                               {t.group.battleAlive.replace("{count}", String(alive.length))}
                             </span>
                           </div>
-                          {countdownLabel && (
-                            <span className={cn(
-                              "font-inter text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full",
-                              roundExpired ? "bg-rose-100 text-rose-600 animate-pulse" : "bg-white/70 text-slate-500"
-                            )}>
-                              {roundExpired ? "⏰ Cerrada" : `⏱ ${countdownLabel}`}
-                            </span>
+                          {roundDeadline && (
+                            <CountdownDisplay deadline={roundDeadline} expiredLabel="Cerrada" variant="light" />
                           )}
                         </div>
                         {/* Admin: process round when expired */}
