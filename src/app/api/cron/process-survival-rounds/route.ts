@@ -26,7 +26,10 @@ export async function GET(req: Request) {
     try {
       const res = await fetch(
         `${baseUrl}/api/groups/${game.group_id}/survival/process-round`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: { "x-cron-secret": process.env.CRON_SECRET ?? "" },
+        }
       );
       if (res.ok) {
         processed.push(game.id);
