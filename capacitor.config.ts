@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.auditus.app',
   appName: 'AuditUs',
-  webDir: '.next',
+  webDir: 'capacitor-web-assets',
   server: {
     // WebView: APK carga tu web real desde Vercel
     // Users ven siempre la última versión sin resubir a stores

@@ -57,7 +57,7 @@ export default function ProfilePage() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error("Máximo 2 MB"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error(t.profile.maxSize); return; }
 
     setUploading(true);
     try {
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
                   className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full flex items-center justify-center border-2 border-indigo-600 z-20 shadow-lg active:scale-90 transition-transform"
-                  aria-label="Cambiar foto"
+                  aria-label={t.profile.changePhoto}
                 >
                   {uploading
                     ? <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
@@ -300,15 +300,6 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-3">
           <SectionTitle>{t.profile.settings}</SectionTitle>
           <div className="bg-white rounded-[28px] overflow-hidden border border-slate-100 shadow-sm divide-y divide-slate-50">
-            <button className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 transition-all group active:scale-[0.99]">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100/50">
-                  <Heart size={16} />
-                </div>
-                <span className="font-jakarta text-sm font-black text-slate-700">{t.profile.contribute}</span>
-              </div>
-              <ChevronRight size={15} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
-            </button>
 
             <button
               onClick={signOut}
