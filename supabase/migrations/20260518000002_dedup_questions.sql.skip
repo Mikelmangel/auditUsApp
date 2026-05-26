@@ -1,0 +1,15 @@
+-- Deduplicate questions: keep one canonical row per (text, category, language)
+-- Never delete rows referenced in group_poll_history
+DELETE FROM public.questions q
+WHERE q.id NOT IN (
+  SELECT DISTINCT ON (text, category, language) id
+  FROM public.questions
+  ORDER BY text, category, language, created_at ASC
+)
+AND (
+  q.id NOT IN (
+    SELECT DISTINCT question_id
+    FROM public.group_poll_history
+    WHERE question_id IS NOT NULL
+  )
+);
